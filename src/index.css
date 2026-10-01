@@ -121,3 +121,9 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #333d61;
         }
+
+        /* Make native password eye icon white on Windows/Edge/Chrome */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            filter: invert(100%);
+        }

@@ -18,7 +18,7 @@ export default function Sidebar() {
                             <div className="text-sm font-extrabold tracking-tight flex items-center gap-1.5 text-white">
                                 {window.__ENV__?.APP_NAME} <span className="text-[10px] text-purple-400 font-mono font-semibold">Ar</span>
                             </div>
-                            <div className="text-[11px] text-slate-400 font-medium">Attack Surface OS</div>
+                            {/* <div className="text-[11px] text-slate-400 font-medium">Attack Surface OS</div> */}
                         </div>
                     </div>
                 </div>
@@ -43,16 +43,16 @@ export default function Sidebar() {
                             <NavLink to="/scanner/vpn" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>VPN</NavLink>
                             <NavLink to="/scanner/ip" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Public IP</NavLink>
                             <NavLink to="/scanner/status" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                Status &amp; Titles <span className="ml-1 text-[9px] bg-cyan-500/20 text-cyan-400 px-1 py-0.5 rounded font-bold">httpx</span>
+                                Status &amp; Titles
                             </NavLink>
                             <NavLink to="/scanner/ports" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                Port Scanner <span className="ml-1 text-[9px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-bold">naabu</span>
+                                Port Scanner
                             </NavLink>
                             <NavLink to="/scanner/dns" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                CNAME &amp; DNS <span className="ml-1 text-[9px] bg-purple-500/20 text-purple-400 px-1 py-0.5 rounded font-bold">dnsx</span>
+                                CNAME &amp; DNS
                             </NavLink>
                             <NavLink to="/scanner/hosts" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                Host Discovery <span className="ml-1 text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-bold">subfinder</span>
+                                Host Discovery
                             </NavLink>
                         </div>
                     </div>
@@ -69,8 +69,8 @@ export default function Sidebar() {
 
                     <NavLink to="/profile" className={({ isActive }) => `sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-transparent ${isActive ? 'active text-white bg-white/5' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                         <div className="flex items-center gap-3">
-                            <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                            <span>My Profile</span>
+                            <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span>Settings</span>
                         </div>
                     </NavLink>
 

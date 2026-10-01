@@ -10,6 +10,32 @@ export default function ScannerLayout() {
         setScanStatus({ hidden: true, text: '', type: '' });
     }, [location.pathname, setScanStatus]);
 
+    let titleText = "Continuous Perimeter Scan & Triage";
+    let subtitleText = "Execute real-time Security templates against web domains, VPN portals, and ingress IPs.";
+    
+    if (location.pathname.includes('/web')) {
+        titleText = "Web Scanner";
+        subtitleText = "Execute real-time Security templates against web domains.";
+    } else if (location.pathname.includes('/vpn')) {
+        titleText = "VPN Scanner";
+        subtitleText = "Execute real-time Security templates against VPN portals.";
+    } else if (location.pathname.includes('/ip')) {
+        titleText = "IP Scanner";
+        subtitleText = "Execute real-time Security templates against ingress IPs.";
+    } else if (location.pathname.includes('/status')) {
+        titleText = "Asset Status";
+        subtitleText = "Monitor the real-time status and health of your scanned assets.";
+    } else if (location.pathname.includes('/ports')) {
+        titleText = "Ports Scanner";
+        subtitleText = "Execute real-time Security templates against open ports and network services.";
+    } else if (location.pathname.includes('/dns')) {
+        titleText = "DNS Scanner";
+        subtitleText = "Execute real-time Security templates against DNS records and zone configurations.";
+    } else if (location.pathname.includes('/hosts')) {
+        titleText = "Hosts Scanner";
+        subtitleText = "Execute real-time Security templates against internal hosts and local network infrastructure.";
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="glass-card p-6 sm:p-7 space-y-6">
@@ -18,10 +44,10 @@ export default function ScannerLayout() {
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                             <h2 className="text-base font-bold text-white tracking-tight">
-                                Continuous Perimeter Scan & Triage
+                                {titleText}
                             </h2>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">Execute real-time Security templates against web domains, VPN portals, and ingress IPs.</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{subtitleText}</p>
                     </div>
 
                     <div className="flex items-center gap-2 bg-[#12162a] p-1 rounded-xl border border-white/5 self-start sm:self-auto">
