@@ -5,7 +5,34 @@ import DateRangePicker from '../components/DateRangePicker';
 export default function IncidentCenter() {
     const { allFindings, groupedFindings, setSelectedAssetHost, user } = useAppContext();
     const [dateFilter, setDateFilter] = useState({ start: null, end: null });
-    const [severityFilter, setSeverityFilter] = useState('issues');
+    const [severityFilter, setSeverityFilter] = useState('all');
+
+    const downloadAllCSV = () => {
+        const headers = ["Target Host", "Finding Name", "Severity", "Description"];
+        const rows = [];
+        filteredGroups.forEach(group => {
+            group.findings.forEach(f => {
+                rows.push([
+                    group.host || 'Unknown',
+                    `"${(f.name || '').replace(/"/g, '""')}"`,
+                    f.severity || 'info',
+                    `"${(f.description || '').replace(/"/g, '""')}"`
+                ]);
+            });
+        });
+        
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + headers.join(",") + "\n" 
+            + rows.map(e => e.join(",")).join("\n");
+            
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `All_Incidents_Report_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const downloadCSV = (group) => {
         const headers = ["Target Host", "Finding Name", "Severity", "Description"];
@@ -34,6 +61,7 @@ export default function IncidentCenter() {
 
         // Filter by Severity Category (Issues vs Safe)
         result = result.filter(group => {
+            if (severityFilter === 'all') return true;
             const hasIssue = group.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity));
             if (severityFilter === 'issues') return hasIssue;
             if (severityFilter === 'safe') return !hasIssue;
@@ -69,7 +97,7 @@ export default function IncidentCenter() {
     }, [groupedFindings, dateFilter, severityFilter]);
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="glass-card p-6 sm:p-7 space-y-5">
+            <div className="relative z-20 glass-card p-6 sm:p-7 space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
                     <div>
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -84,8 +112,11 @@ export default function IncidentCenter() {
                     </div>
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                     <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => setSeverityFilter('all')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'all' ? 'bg-blue-600 text-white border border-blue-500/30 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
+                            All (<span className={severityFilter === 'all' ? 'text-blue-200' : 'text-slate-500'}>{allFindings.length}</span>)
+                        </button>
                         <button onClick={() => setSeverityFilter('issues')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'issues' ? 'bg-purple-600 text-white border border-purple-500/30 shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
                             Issues (<span className={severityFilter === 'issues' ? 'text-purple-200' : 'text-slate-500'}>{allFindings.filter(f => ['critical', 'high', 'medium', 'low'].includes(f.severity)).length}</span>)
                         </button>
@@ -93,6 +124,11 @@ export default function IncidentCenter() {
                             Safe / Info (<span className={severityFilter === 'safe' ? 'text-emerald-200' : 'text-slate-500'}>{allFindings.filter(f => !f.severity || f.severity === 'info' || f.severity === 'unknown').length}</span>)
                         </button>
                     </div>
+                    
+                    <button onClick={downloadAllCSV} className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs font-bold text-white transition-colors shadow-sm ml-4">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Report
+                    </button>
                 </div>
             </div>
 
