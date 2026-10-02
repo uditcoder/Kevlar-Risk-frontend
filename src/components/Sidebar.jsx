@@ -45,9 +45,7 @@ export default function Sidebar() {
                             <NavLink to="/scanner/status" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                 Status &amp; Titles
                             </NavLink>
-                            <NavLink to="/scanner/ports" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                Port Scanner
-                            </NavLink>
+
                             <NavLink to="/scanner/dns" className={({ isActive }) => `block w-full text-left px-2 py-1.5 rounded-lg text-xs transition-colors ${isActive ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                 CNAME &amp; DNS
                             </NavLink>
