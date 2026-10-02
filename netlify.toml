@@ -2,6 +2,13 @@
   publish = "dist"
   command = "npm run build"
 
+# Proxy API requests to your HTTP EC2 server to bypass the Mixed Content error
+[[redirects]]
+  from = "/api/*"
+  to = "http://16.192.192.1:3001/api/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
