@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import CryptoJS from 'crypto-js';
 
 export default function Profile() {
     const { token } = useAppContext();
@@ -46,19 +47,11 @@ export default function Profile() {
         }
 
         try {
-            const encoder = new TextEncoder();
-            
             // Hash old password
-            const oldEncodedData = encoder.encode(oldPassword);
-            const oldHashBuffer = await crypto.subtle.digest('SHA-256', oldEncodedData);
-            const oldHashArray = Array.from(new Uint8Array(oldHashBuffer));
-            const hashedOldPassword = oldHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const hashedOldPassword = CryptoJS.SHA256(oldPassword).toString(CryptoJS.enc.Hex);
 
             // Hash new password
-            const newEncodedData = encoder.encode(newPassword);
-            const newHashBuffer = await crypto.subtle.digest('SHA-256', newEncodedData);
-            const newHashArray = Array.from(new Uint8Array(newHashBuffer));
-            const hashedNewPassword = newHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const hashedNewPassword = CryptoJS.SHA256(newPassword).toString(CryptoJS.enc.Hex);
 
             const apiUrl = window.__ENV__?.API_BASE_URL || '';
             const res = await fetch(`${apiUrl}/api/auth/change-password`, {

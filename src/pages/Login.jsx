@@ -81,11 +81,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const encoder = new TextEncoder();
-      const encodedData = encoder.encode(forgotData.newPassword);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encodedData);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const encryptedPasswordPayload = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const encryptedPasswordPayload = CryptoJS.SHA256(forgotData.newPassword).toString(CryptoJS.enc.Hex);
 
       const apiUrl = window.__ENV__?.API_BASE_URL;
       const res = await fetch(`${apiUrl}/api/auth/reset-password`, {
