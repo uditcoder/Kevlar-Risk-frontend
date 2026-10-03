@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import CryptoJS from 'crypto-js';
 
 export default function SetupAccount() {
   const [searchParams] = useSearchParams();
@@ -41,11 +42,7 @@ export default function SetupAccount() {
     setLoading(true);
     try {
       // Encrypt/hash the password payload before sending over the network
-      const encoder = new TextEncoder();
-      const encodedData = encoder.encode(formData.password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encodedData);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const encryptedPasswordPayload = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const encryptedPasswordPayload = CryptoJS.SHA256(formData.password).toString(CryptoJS.enc.Hex);
 
       const apiUrl = window.__ENV__?.API_BASE_URL;
       const res = await fetch(`${apiUrl}/api/auth/setup-account`, {
