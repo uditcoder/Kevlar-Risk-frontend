@@ -27,40 +27,72 @@ export default function ScannerVPN() {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ assetType: 'vpn', targetUrl: target })
+                    body: JSON.stringify({ assetType: 'vpn', targetUrl: target, frequency: 'now' })
                 });
-                if (!res.ok) throw new Error('Scan failed');
+                if (!res.ok) throw new Error('Failed to start scan');
                 const data = await res.json();
                 
-                if (data.summary) setScanResult(data.summary);
-                setScanStatus({ hidden: false, text: 'Scan Complete', type: 'success' });
-                setToastMessage('Scan Complete!');
-                setTimeout(() => setToastMessage(null), 5000);
+                if (!data.scanId) throw new Error('No scan ID returned');
 
-                setMonitoredAssets(prev => {
-                    const newAsset = {
-                        target: data.asset ? data.asset.target : target,
-                        category: data.asset ? data.asset.type : 'vpn',
-                        status: data.asset && data.asset.status === 'issue_found' ? 'issue_found' : 'active',
-                        ports: data.asset ? data.asset.portsDetected || [] : [],
-                        label: data.asset ? data.asset.label : undefined,
-                        lastScanned: new Date().toLocaleTimeString()
-                    };
-                    if (prev.some(a => a.target === target)) {
-                        return prev.map(a => a.target === target ? newAsset : a);
-                    }
-                    return [...prev, newAsset];
-                });
-                
-                if (data.discoveredFindings && data.discoveredFindings.length > 0) {
-                    setAllFindings(prev => [...prev, ...data.discoveredFindings]);
-                } else if (data.finding) {
-                    setAllFindings(prev => [...prev, data.finding]);
-                }
+                setScanStatus({ hidden: false, text: 'Scan running in background... You will receive an email when complete.', type: 'info' });
+
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const statusRes = await fetch(`${apiUrl}/api/scan-status/${data.scanId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!statusRes.ok) return;
+                        const statusData = await statusRes.json();
+                        const scan = statusData.scan;
+
+                        if (scan?.status === 'complete') {
+                            clearInterval(pollInterval);
+                            setIsScanning(false);
+
+                            let toastText = '';
+                            if (!scan.isRescan) {
+                                toastText = scan.rawCount > 0 
+                                    ? `Results found, see findings in Incident tab` 
+                                    : `No results found.`;
+                            } else {
+                                if (scan.newFindingsCount > 0) {
+                                    toastText = `New results found, see findings in Incident tab`;
+                                } else {
+                                    toastText = `No new results found.`;
+                                }
+                            }
+
+                            setScanStatus({ hidden: false, text: toastText, type: (scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0)) ? 'error' : 'success' });
+                            setToastMessage(`✅ ${toastText}`);
+                            setTimeout(() => setToastMessage(null), 8000);
+
+                            if (scan.findings && scan.findings.length > 0) {
+                                setAllFindings(prev => [...prev, ...scan.findings]);
+                            }
+                            setMonitoredAssets(prev => {
+                                const newAsset = {
+                                    target,
+                                    category: 'vpn',
+                                    status: scan.rawCount > 0 ? 'issue_found' : 'safe',
+                                    severity: scan.findings[0]?.severity || 'info',
+                                    portsDetected: scan.ports || [],
+                                    lastScanned: new Date().toLocaleTimeString()
+                                };
+                                if (prev.some(a => a.target === target)) {
+                                    return prev.map(a => a.target === target ? newAsset : a);
+                                }
+                                return [...prev, newAsset];
+                            });
+                        } else if (scan?.status === 'failed') {
+                            clearInterval(pollInterval);
+                            setIsScanning(false);
+                            setScanStatus({ hidden: false, text: 'Scan failed on server.', type: 'error' });
+                        }
+                    } catch {}
+                }, 8000);
                 
             } catch(e) {
                 setScanStatus({ hidden: false, text: 'Scan Failed: ' + e.message, type: 'error' });
-            } finally {
                 setIsScanning(false);
             }
         }, 1000);

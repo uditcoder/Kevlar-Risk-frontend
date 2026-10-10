@@ -16,6 +16,7 @@ import IncidentCenter from './pages/IncidentCenter';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import SetupAccount from './pages/SetupAccount';
+import AuditLogs from './pages/AuditLogs';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -47,6 +48,7 @@ export default function App() {
 
               <Route path="incidents" element={<IncidentCenter />} />
               <Route path="admin" element={<AdminDashboard />} />
+              <Route path="audit-logs" element={<AuditLogs />} />
               <Route path="profile" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

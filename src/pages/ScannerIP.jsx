@@ -38,6 +38,8 @@ export default function ScannerIP() {
 
         setTimeout(async () => {
             try {
+                setScanStatus({ hidden: false, text: 'Scans running in background... You will receive emails when complete.', type: 'info' });
+
                 const scanPromises = targets.map(async (t) => {
                     const apiUrl = window.__ENV__?.API_BASE_URL;
                     const res = await fetch(`${apiUrl}/api/scan-infrastructure`, {
@@ -46,49 +48,78 @@ export default function ScannerIP() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ assetType: 'ip', targetUrl: t })
+                        body: JSON.stringify({ assetType: 'ip', targetUrl: t, frequency: 'now' })
                     });
                     if (!res.ok) throw new Error(`Scan failed for ${t}`);
-                    return await res.json();
-                });
+                    const data = await res.json();
+                    if (!data.scanId) throw new Error('No scan ID returned');
 
-                const results = await Promise.all(scanPromises);
-                
-                let successCount = 0;
-                results.forEach((data, index) => {
-                    const t = targets[index];
-                    if (data.summary) setScanResult(data.summary);
-                    
-                    setMonitoredAssets(prev => {
-                        const newAsset = {
-                            target: data.asset ? data.asset.target : t,
-                            category: data.asset ? data.asset.type : 'ip',
-                            status: data.asset && data.asset.status === 'issue_found' ? 'issue_found' : 'active',
-                            ports: data.asset ? data.asset.portsDetected || [] : [],
-                            label: data.asset ? data.asset.label : undefined,
-                            lastScanned: new Date().toLocaleTimeString()
-                        };
-                        if (prev.some(a => a.target === t)) {
-                            return prev.map(a => a.target === t ? newAsset : a);
-                        }
-                        return [...prev, newAsset];
+                    return new Promise((resolve) => {
+                        const pollInterval = setInterval(async () => {
+                            try {
+                                const statusRes = await fetch(`${apiUrl}/api/scan-status/${data.scanId}`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (!statusRes.ok) return;
+                                const statusData = await statusRes.json();
+                                const scan = statusData.scan;
+
+                                if (scan?.status === 'complete') {
+                                    clearInterval(pollInterval);
+                                    
+                                    let toastText = '';
+                                    if (!scan.isRescan) {
+                                        toastText = scan.rawCount > 0 
+                                            ? `Results found, see findings in Incident tab for ${t}` 
+                                            : `No results found for ${t}.`;
+                                    } else {
+                                        if (scan.newFindingsCount > 0) {
+                                            toastText = `New results found, see findings in Incident tab for ${t}`;
+                                        } else {
+                                            toastText = `No new results found for ${t}.`;
+                                        }
+                                    }
+
+                                    setToastMessage(`✅ ${toastText}`);
+                                    setTimeout(() => setToastMessage(null), 8000);
+
+                                    if (scan.findings && scan.findings.length > 0) {
+                                        setAllFindings(prev => [...prev, ...scan.findings]);
+                                    }
+                                    setMonitoredAssets(prev => {
+                                        const newAsset = {
+                                            target: t,
+                                            category: 'ip',
+                                            status: scan.rawCount > 0 ? 'issue_found' : 'safe',
+                                            severity: scan.findings[0]?.severity || 'info',
+                                            portsDetected: scan.ports || [],
+                                            lastScanned: new Date().toLocaleTimeString()
+                                        };
+                                        if (prev.some(a => a.target === t)) {
+                                            return prev.map(a => a.target === t ? newAsset : a);
+                                        }
+                                        return [...prev, newAsset];
+                                    });
+                                    resolve(true);
+                                } else if (scan?.status === 'failed') {
+                                    clearInterval(pollInterval);
+                                    setToastMessage(`❌ Scan failed on server for ${t}`);
+                                    setTimeout(() => setToastMessage(null), 8000);
+                                    resolve(false);
+                                }
+                            } catch {}
+                        }, 8000);
                     });
-                    
-                    if (data.discoveredFindings && data.discoveredFindings.length > 0) {
-                        setAllFindings(prev => [...prev, ...data.discoveredFindings]);
-                    } else if (data.finding) {
-                        setAllFindings(prev => [...prev, data.finding]);
-                    }
-                    successCount++;
                 });
 
-                setScanStatus({ hidden: false, text: `Scan Complete (${successCount} targets)`, type: 'success' });
-                setToastMessage(`Scan Complete (${successCount} targets)!`);
-                setTimeout(() => setToastMessage(null), 5000);
+                // Do not await Promise.all here if we want the user to be able to navigate away, 
+                // but since isScanning disables the button, we can await it or just release the UI lock immediately.
+                // Let's release the UI lock immediately so they can scan more while it polls in background.
+                setIsScanning(false);
+                setScanStatus({ hidden: false, text: 'Scans queued. Monitoring in background.', type: 'success' });
                 
             } catch(e) {
                 setScanStatus({ hidden: false, text: 'Scan Failed: ' + e.message, type: 'error' });
-            } finally {
                 setIsScanning(false);
             }
         }, 1000);

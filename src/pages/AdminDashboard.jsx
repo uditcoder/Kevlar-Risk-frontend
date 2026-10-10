@@ -91,6 +91,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th className="px-6 py-4 font-semibold">Name</th>
                   <th className="px-6 py-4 font-semibold">Email</th>
+                  <th className="px-6 py-4 font-semibold">Role</th>
                   <th className="px-6 py-4 font-semibold">Company</th>
                   <th className="px-6 py-4 font-semibold text-center">Status</th>
                 </tr>
@@ -100,6 +101,11 @@ export default function AdminDashboard() {
                   <tr key={u.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-medium text-white">{u.name || 'Admin'}</td>
                     <td className="px-6 py-4">{u.email}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        {u.role || 'user'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">{u.companyName || '-'}</td>
                     <td className="px-6 py-4 text-center">
                       {u.setupToken ? (
