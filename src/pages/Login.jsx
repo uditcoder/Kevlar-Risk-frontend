@@ -4,8 +4,9 @@ import { useAppContext } from '../context/AppContext';
 import CryptoJS from 'crypto-js';
 
 export default function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', otp: '' });
   const [loading, setLoading] = useState(false);
+  const [requireOtp, setRequireOtp] = useState(false);
   const { login, setToastMessage } = useAppContext();
   const navigate = useNavigate();
 
@@ -20,22 +21,44 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Encrypt/hash the password payload before sending over the network
-      const encryptedPasswordPayload = CryptoJS.SHA256(formData.password).toString(CryptoJS.enc.Hex);
-
       const apiUrl = window.__ENV__?.API_BASE_URL;
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: encryptedPasswordPayload })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        login(data.user, data.token);
-        setToastMessage('Successfully logged in');
-        navigate('/scanner');
+
+      if (requireOtp) {
+        // Verify OTP
+        const res = await fetch(`${apiUrl}/api/auth/verify-login-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, otp: formData.otp })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          login(data.user, data.token);
+          setToastMessage('Successfully logged in');
+          navigate('/scanner');
+        } else {
+          setToastMessage(`Login failed: ${data.error}`);
+        }
       } else {
-        setToastMessage(`Login failed: ${data.error}`);
+        // Encrypt/hash the password payload before sending over the network
+        const encryptedPasswordPayload = CryptoJS.SHA256(formData.password).toString(CryptoJS.enc.Hex);
+
+        const res = await fetch(`${apiUrl}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, password: encryptedPasswordPayload })
+        });
+        const data = await res.json();
+        if (res.ok && data.requireOtp) {
+          setRequireOtp(true);
+          setToastMessage('OTP sent to your email');
+        } else if (res.ok && data.token) {
+          // Fallback just in case MFA is disabled in future
+          login(data.user, data.token);
+          setToastMessage('Successfully logged in');
+          navigate('/scanner');
+        } else {
+          setToastMessage(`Login failed: ${data.error}`);
+        }
       }
     } catch (err) {
       setToastMessage('Failed to log in');
@@ -204,8 +227,35 @@ export default function Login() {
           )
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Email</label>
+            {requireOtp ? (
+              <div>
+                <div className="text-center mb-6">
+                  <p className="text-sm text-slate-400">Please enter the 6-digit OTP sent to</p>
+                  <p className="text-sm font-medium text-white">{formData.email}</p>
+                </div>
+                <label className="block text-sm font-medium text-slate-400 mb-1 text-center">OTP Code</label>
+                <input
+                  type="text" required autoComplete="off" maxLength="6"
+                  value={formData.otp} onChange={e => setFormData({ ...formData, otp: e.target.value.toUpperCase() })}
+                  className="w-full px-4 py-2 bg-[#1a1d2d] border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500 tracking-widest text-center text-lg font-mono"
+                  placeholder="••••••"
+                />
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 mt-4"
+                >
+                  {loading ? 'Verifying...' : 'Verify & Login'}
+                </button>
+                <div className="text-center mt-4">
+                  <button type="button" onClick={() => setRequireOtp(false)} className="text-sm text-slate-400 hover:text-white">
+                    Back to Login
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Email</label>
               <input
                 type="email" required
                 value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -240,6 +290,8 @@ export default function Login() {
             >
               {loading ? 'Logging in...' : 'Sign In'}
             </button>
+            </>
+            )}
           </form>
         )}
       </div>

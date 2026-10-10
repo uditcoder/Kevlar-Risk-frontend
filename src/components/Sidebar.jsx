@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 export default function Sidebar() {
-    const { allFindings, user, logout } = useAppContext();
+    const { allFindings, groupedFindings, user, logout } = useAppContext();
     const [isMonitorOpen, setIsMonitorOpen] = React.useState(false);
 
     return (
@@ -60,8 +60,8 @@ export default function Sidebar() {
                             <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                             <span>Incident Section</span>
                         </div>
-                        {allFindings.length > 0 && (
-                            <span className="text-[10px] mono bg-red-950/60 text-red-300 border border-red-800/60 px-1.5 py-0.5 rounded-full font-bold">{allFindings.length}</span>
+                        {groupedFindings.length > 0 && (
+                            <span className="text-[10px] mono bg-red-950/60 text-red-300 border border-red-800/60 px-1.5 py-0.5 rounded-full font-bold">{groupedFindings.length}</span>
                         )}
                     </NavLink>
 
@@ -72,7 +72,14 @@ export default function Sidebar() {
                         </div>
                     </NavLink>
 
-                    {user?.role === 'admin' && (
+                    <NavLink to="/audit-logs" className={({ isActive }) => `sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-transparent ${isActive ? 'active text-white bg-white/5' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                        <div className="flex items-center gap-3">
+                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span>Audit Logs</span>
+                        </div>
+                    </NavLink>
+
+                    {user?.role === 'superadmin' && (
                         <NavLink to="/admin" className={({ isActive }) => `sidebar-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent ${isActive ? 'active text-white bg-white/5' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}>
                             <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             <span>Onboard User</span>
