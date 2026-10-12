@@ -127,3 +127,27 @@
         input[type="password"]::-ms-clear {
             filter: invert(100%);
         }
+
+        @keyframes retroScanFill {
+            0% { width: 5%; }
+            12% { width: 20%; }
+            28% { width: 38%; }
+            45% { width: 55%; }
+            65% { width: 72%; }
+            82% { width: 88%; }
+            95% { width: 94%; }
+            100% { width: 97%; }
+        }
+
+        .animate-retro-progress {
+            animation: retroScanFill 12s cubic-bezier(0.1, 0.7, 0.2, 1) infinite;
+        }
+
+        @keyframes cyberSweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+        }
+
+        .animate-cyber-sweep {
+            animation: cyberSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }

@@ -21,6 +21,12 @@ export default function ScannerStatus() {
             return;
         }
 
+        const titleEl = document.getElementById('scanPopupTitle');
+        if (titleEl) titleEl.innerText = 'Checking Status & Title';
+        const subEl = document.getElementById('scanPopupSubtitle');
+        if (subEl) subEl.innerText = 'Probing endpoints & extracting page titles...';
+        document.getElementById('scanPopupModal')?.classList.remove('hidden');
+
         try {
             const apiUrl = window.__ENV__?.API_BASE_URL;
             const res = await fetch(`${apiUrl}/api/monitor/status`, {
@@ -43,6 +49,7 @@ export default function ScannerStatus() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
@@ -54,10 +61,12 @@ export default function ScannerStatus() {
             } else {
                 setResults(data.results || []);
                 setLoading(false);
+                document.getElementById('scanPopupModal')?.classList.add('hidden');
             }
         } catch (e) {
             setError(e.message);
             setLoading(false);
+            document.getElementById('scanPopupModal')?.classList.add('hidden');
         }
     };
 

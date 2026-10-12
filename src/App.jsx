@@ -47,7 +47,9 @@ export default function App() {
               </Route>
 
               <Route path="incidents" element={<IncidentCenter />} />
-              <Route path="admin" element={<AdminDashboard />} />
+              <Route element={<ProtectedRoute allowedRoles={['superadmin']} />}>
+                <Route path="admin" element={<AdminDashboard />} />
+              </Route>
               <Route path="audit-logs" element={<AuditLogs />} />
               <Route path="profile" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 export default function AdminDashboard() {
-  const { token, setToastMessage } = useAppContext();
+  const { token, user, setToastMessage } = useAppContext();
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', companyName: '', phone: '', email: '' });
   const [loading, setLoading] = useState(false);
+
+  // Strictly guard: only superadmin can access this page
+  if (user && user.role !== 'superadmin') {
+    return <Navigate to="/" replace />;
+  }
 
   const [users, setUsers] = useState([]);
 
@@ -108,7 +114,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4">{u.companyName || '-'}</td>
                     <td className="px-6 py-4 text-center">
-                      {u.setupToken ? (
+                      {(u.isPending || u.setupToken) ? (
                         <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending</span>
                       ) : (
                         <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Active</span>

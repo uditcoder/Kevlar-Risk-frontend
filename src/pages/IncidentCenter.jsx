@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import DateRangePicker from '../components/DateRangePicker';
 
@@ -6,6 +6,14 @@ export default function IncidentCenter() {
     const { allFindings, groupedFindings, setSelectedAssetHost, user } = useAppContext();
     const [dateFilter, setDateFilter] = useState({ start: null, end: null });
     const [severityFilter, setSeverityFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
+    // Reset to page 1 whenever any filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [severityFilter, dateFilter, searchQuery, pageSize]);
 
     const downloadAllCSV = () => {
         const headers = ["Target Host", "Finding Name", "Severity", "Description"];
@@ -59,42 +67,51 @@ export default function IncidentCenter() {
     const filteredGroups = useMemo(() => {
         let result = groupedFindings;
 
+        // Quick Search by Host or Finding Name
+        if (searchQuery.trim()) {
+            const query = searchQuery.trim().toLowerCase();
+            result = result.filter(group => {
+                if (group.host && group.host.toLowerCase().includes(query)) return true;
+                return group.findings.some(f => (f.name && f.name.toLowerCase().includes(query)) || (f.templateId && f.templateId.toLowerCase().includes(query)));
+            });
+        }
+
         // Filter by Severity Category (Issues vs Safe)
-        result = result.filter(group => {
-            if (severityFilter === 'all') return true;
-            const hasIssue = group.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity));
-            if (severityFilter === 'issues') return hasIssue;
-            if (severityFilter === 'safe') return !hasIssue;
-            return true;
-        });
+        if (severityFilter !== 'all') {
+            result = result.filter(group => {
+                const hasIssue = group.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity));
+                if (severityFilter === 'issues') return hasIssue;
+                if (severityFilter === 'safe') return !hasIssue;
+                return true;
+            });
+        }
 
         // Filter by Date
         if (dateFilter.start || dateFilter.end) {
+            const startMs = dateFilter.start ? new Date(dateFilter.start).setHours(0, 0, 0, 0) : null;
+            const endMs = dateFilter.end ? new Date(dateFilter.end).setHours(23, 59, 59, 999) : null;
+
             result = result.map(group => {
                 const filteredFindings = group.findings.filter(f => {
-                    if (!f.timestamp) return true; // Keep if no timestamp
-                    const findingDate = new Date(f.timestamp);
-                    findingDate.setHours(0, 0, 0, 0); // Normalize to midnight
-                    
-                    let inRange = true;
-                    if (dateFilter.start) {
-                        const startDate = new Date(dateFilter.start);
-                        startDate.setHours(0, 0, 0, 0);
-                        if (findingDate < startDate) inRange = false;
-                    }
-                    if (dateFilter.end) {
-                        const endDate = new Date(dateFilter.end);
-                        endDate.setHours(0, 0, 0, 0);
-                        if (findingDate > endDate) inRange = false;
-                    }
-                    return inRange;
+                    if (!f.timestamp) return true;
+                    const fMs = new Date(f.timestamp).getTime();
+                    if (startMs && fMs < startMs) return false;
+                    if (endMs && fMs > endMs) return false;
+                    return true;
                 });
                 return { ...group, findings: filteredFindings };
             }).filter(group => group.findings.length > 0);
         }
 
         return result;
-    }, [groupedFindings, dateFilter, severityFilter]);
+    }, [groupedFindings, dateFilter, severityFilter, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredGroups.length / pageSize));
+    const paginatedGroups = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredGroups.slice(start, start + pageSize);
+    }, [filteredGroups, currentPage, pageSize]);
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="relative z-20 glass-card p-6 sm:p-7 space-y-5">
@@ -112,7 +129,7 @@ export default function IncidentCenter() {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => setSeverityFilter('all')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'all' ? 'bg-blue-600 text-white border border-blue-500/30 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
                             All (<span className={severityFilter === 'all' ? 'text-blue-200' : 'text-slate-500'}>{allFindings.length}</span>)
@@ -124,11 +141,26 @@ export default function IncidentCenter() {
                             Safe / Info (<span className={severityFilter === 'safe' ? 'text-emerald-200' : 'text-slate-500'}>{allFindings.filter(f => !f.severity || f.severity === 'info' || f.severity === 'unknown').length}</span>)
                         </button>
                     </div>
-                    
-                    <button onClick={downloadAllCSV} className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs font-bold text-white transition-colors shadow-sm ml-4">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Download Report
-                    </button>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search target host or CVE..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="bg-[#131729] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 w-48 sm:w-60"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2 text-slate-500 hover:text-white text-xs">✕</button>
+                            )}
+                        </div>
+
+                        <button onClick={downloadAllCSV} className="flex-shrink-0 flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs font-bold text-white transition-colors shadow-sm cursor-pointer">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download Report
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -147,24 +179,62 @@ export default function IncidentCenter() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredGroups.length === 0 ? (
+                            {paginatedGroups.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-5 py-12 text-center text-slate-500 font-medium text-xs bg-[#101423]/50">
-                                        No active incidents. Systems are secure.
+                                        {filteredGroups.length === 0 ? "No active incidents found. Systems are secure." : "No incidents on this page."}
                                     </td>
                                 </tr>
                             ) : (
-                                filteredGroups.map((group, i) => {
+                                paginatedGroups.map((group, i) => {
+                                    const globalIndex = (currentPage - 1) * pageSize + i;
                                     const highestSeverity = ['critical', 'high', 'medium', 'low', 'info'].find(s => group.findings.some(f => f.severity === s)) || 'info';
-                                    const primaryFinding = group.findings.find(f => f.severity === highestSeverity) || group.findings[0];
+                                    const primaryFinding = group.findings.find(f => f.severity === highestSeverity) || group.findings[0] || {};
                                     
+                                    const getDisplayType = (finding) => {
+                                        const assetType = (finding.assetType || '').toLowerCase();
+                                        const tags = Array.isArray(finding.tags) ? finding.tags : [];
+                                        const templateId = (finding.templateId || '').toLowerCase();
+                                        const name = (finding.name || '').toLowerCase();
+
+                                        if (assetType === 'hosts' || tags.includes('hosts') || tags.includes('subfinder') || templateId.includes('host') || name.includes('subdomain') || name.includes('live host')) {
+                                            return 'HOST DISCOVERY';
+                                        }
+                                        if (assetType === 'ports' || tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port') || name.includes('open port')) {
+                                            return 'PORT SCAN';
+                                        }
+                                        if (assetType === 'dns' || tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname') || templateId.includes('dns-') || name.includes('dns') || name.includes('cname')) {
+                                            return 'DNS RESOLUTION';
+                                        }
+                                        if (assetType === 'status' || tags.includes('httpx') || tags.includes('status-monitor') || templateId.includes('http-status') || name.startsWith('http ')) {
+                                            return 'HTTP STATUS';
+                                        }
+                                        if (assetType === 'vpn' || tags.includes('vpn')) {
+                                            return 'VPN AUDIT';
+                                        }
+                                        if (assetType === 'ip') {
+                                            return 'IP SCAN';
+                                        }
+                                        if (assetType === 'url') {
+                                            return 'WEB URL SCAN';
+                                        }
+                                        return `${(finding.assetType || 'DOMAIN').toUpperCase()} SCAN`;
+                                    };
+
+                                    const displayType = getDisplayType(primaryFinding);
+                                    const typeCode = displayType.includes('HOST') ? 'HOST' :
+                                                     displayType.includes('PORT') ? 'PORT' :
+                                                     displayType.includes('DNS') ? 'DNSX' :
+                                                     displayType.includes('HTTP') ? 'HTTP' :
+                                                     displayType.includes('VPN') ? 'VPNS' :
+                                                     displayType.includes('IP') ? 'IPSC' : 'DOMN';
+
                                     const dateStr = (primaryFinding.timestamp ? new Date(primaryFinding.timestamp) : new Date()).toLocaleDateString('en-GB').replace(/\//g, '');
                                     const prefix = (user?.company || user?.name || 'CYBR').substring(0, 4).toUpperCase().padEnd(4, 'A');
-                                    const typeStr = (primaryFinding.assetType === 'url' ? 'DOMAIN' : (primaryFinding.assetType || 'DOMAIN')).substring(0, 5).toUpperCase();
-                                    const incidentId = `${prefix}-${typeStr}-${dateStr}-${String(i+1).padStart(4, '0')}`;
+                                    const incidentId = `${prefix}-${typeCode}-${dateStr}-${String(globalIndex + 1).padStart(4, '0')}`;
 
                                     return (
-                                        <tr key={i} className="border-b border-white/5 bg-[#12162a]/30 hover:bg-[#161b33] transition-colors group-row">
+                                        <tr key={group.host || globalIndex} className="border-b border-white/5 bg-[#12162a]/30 hover:bg-[#161b33] transition-colors group-row">
                                             <td className="px-5 py-4 whitespace-nowrap font-mono text-slate-300">
                                                 {incidentId}
                                             </td>
@@ -174,8 +244,16 @@ export default function IncidentCenter() {
                                                     {group.host}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-4 whitespace-nowrap text-slate-300 uppercase">
-                                                {primaryFinding.assetType === 'url' ? 'DOMAIN SCAN' : `${primaryFinding.assetType || 'DOMAIN'} SCAN`}
+                                            <td className="px-5 py-4 whitespace-nowrap text-slate-200 font-mono font-bold tracking-wider text-[11px] uppercase">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                    displayType.includes('HOST') ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' :
+                                                    displayType.includes('PORT') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                                                    displayType.includes('DNS') ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' :
+                                                    displayType.includes('HTTP') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
+                                                    'bg-purple-500/10 text-purple-300 border border-purple-500/30'
+                                                }`}>
+                                                    {displayType}
+                                                </span>
                                             </td>
                                             <td className="px-5 py-4">
                                                 <div className="text-slate-400 uppercase text-[10px] truncate max-w-[200px]" title={primaryFinding.name}>
@@ -207,9 +285,69 @@ export default function IncidentCenter() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* PAGINATION CONTROLS */}
+                {filteredGroups.length > 0 && (
+                    <div className="px-5 py-4 border-t border-white/5 bg-[#101423]/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                        <div className="flex items-center gap-2">
+                            <span>
+                                Showing <strong className="text-white">{(currentPage - 1) * pageSize + 1}</strong> to <strong className="text-white">{Math.min(currentPage * pageSize, filteredGroups.length)}</strong> of <strong className="text-white">{filteredGroups.length}</strong> incident targets
+                            </span>
+                            <span className="text-slate-600">|</span>
+                            <label className="flex items-center gap-1.5 text-xs text-slate-400">
+                                <span>Per page:</span>
+                                <select 
+                                    value={pageSize} 
+                                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                                    className="bg-[#131729] border border-white/10 rounded px-2 py-0.5 text-xs text-white focus:outline-none focus:border-purple-500"
+                                >
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                                className="px-2.5 py-1 rounded bg-[#131729] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed border border-white/5 text-slate-300 font-mono text-xs"
+                                title="First page"
+                            >
+                                «
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 rounded bg-[#131729] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed border border-white/5 text-slate-300 text-xs font-medium"
+                            >
+                                Prev
+                            </button>
+                            
+                            <span className="px-3 py-1 text-xs font-mono text-slate-300">
+                                Page <strong className="text-white">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
+                            </span>
+
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 rounded bg-[#131729] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed border border-white/5 text-slate-300 text-xs font-medium"
+                            >
+                                Next
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages}
+                                className="px-2.5 py-1 rounded bg-[#131729] hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed border border-white/5 text-slate-300 font-mono text-xs"
+                                title="Last page"
+                            >
+                                »
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-            
-            {/* Ingest raw findings log removed as per user request */}
         </div>
     );
 }

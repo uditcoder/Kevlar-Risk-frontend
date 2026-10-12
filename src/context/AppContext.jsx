@@ -15,7 +15,8 @@ export function AppProvider({ children }) {
 
   const groupedFindings = useMemo(() => {
     const groups = Object.values(allFindings.reduce((acc, finding) => {
-      const host = finding.host || 'Unknown Target';
+      // Group by the scanned target domain/host (e.g. google.com) so all findings belong to 1 target incident card
+      const host = finding.scanTarget || finding.target || finding.host || 'Unknown Target';
       if (!acc[host]) {
         acc[host] = {
           host,
@@ -58,7 +59,7 @@ export function AppProvider({ children }) {
     if (!token) return;
     const fetchScans = async () => {
       try {
-        const apiUrl = window.__ENV__?.API_BASE_URL || "https://cyber-guard-poc.onrender.com";
+        const apiUrl = window.__ENV__?.API_BASE_URL;
         const res = await fetch(`${apiUrl}/api/scans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -72,7 +73,12 @@ export function AppProvider({ children }) {
               severity: s.findings.length > 0 ? s.findings[0].severity : 'info',
               portsDetected: s.ports || []
             }));
-            const allHstFindings = data.scans.flatMap(s => s.findings.map(f => ({...f, aiRecommendation: s.aiRecommendation})));
+            const allHstFindings = data.scans.flatMap(s => (s.findings || []).map(f => ({
+              ...f, 
+              scanTarget: s.target,
+              aiRecommendation: s.aiRecommendation,
+              aiIntelligence: s.aiIntelligence
+            })));
             
             // Avoid loop
             if (allFindings.length !== allHstFindings.length) {
@@ -87,7 +93,7 @@ export function AppProvider({ children }) {
       }
 
       try {
-        const apiUrl = window.__ENV__?.API_BASE_URL || "https://cyber-guard-poc.onrender.com";
+        const apiUrl = window.__ENV__?.API_BASE_URL || "https://attack-surface-poc.onrender.com";
         const res2 = await fetch(`${apiUrl}/api/scheduled-scans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -102,7 +108,7 @@ export function AppProvider({ children }) {
       }
     };
     fetchScans();
-  }, [token, allFindings.length]);
+  }, [token]);
 
   const login = (userData, tokenString) => {
     setUser(userData);
