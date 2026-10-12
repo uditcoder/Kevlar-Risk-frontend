@@ -18,7 +18,7 @@ export default function Sidebar() {
                             <div className="text-sm font-extrabold tracking-tight flex items-center gap-1.5 text-white">
                                 {window.__ENV__?.APP_NAME} <span className="text-[10px] text-purple-400 font-mono font-semibold">Ar</span>
                             </div>
-                            {/* <div className="text-[11px] text-slate-400 font-medium">Attack Surface OS</div> */}
+                            {/* <div className="text-[11px] text-slate-400 font-medium">Kevlar Risk</div> */}
                         </div>
                     </div>
                 </div>

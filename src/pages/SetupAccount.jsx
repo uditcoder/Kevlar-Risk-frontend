@@ -98,8 +98,14 @@ export default function SetupAccount() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0a0c14] text-slate-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-[#0f111a] border border-slate-800 rounded-xl shadow-2xl">
+    <div
+      className="flex items-center justify-center min-h-screen text-slate-100 relative px-4 bg-black bg-no-repeat bg-center"
+      style={{
+        backgroundImage: `linear-gradient(rgba(10, 12, 20, 0.4), rgba(10, 12, 20, 0.5)), url('/bg-pic-auth.jpeg')`,
+        backgroundSize: '100% 100%',
+      }}
+    >
+      <div className="w-full max-w-md p-8 space-y-6 bg-[#0f111a]/85 backdrop-blur-md border border-slate-700/60 rounded-xl shadow-2xl relative z-10">
         <h2 className="text-3xl font-bold text-center text-white">Set Up Account</h2>
         <p className="text-center text-slate-400">Choose a secure password to activate your account</p>
 

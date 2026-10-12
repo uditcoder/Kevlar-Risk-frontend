@@ -20,6 +20,12 @@ export default function ScannerDNS() {
             return;
         }
 
+        const titleEl = document.getElementById('scanPopupTitle');
+        if (titleEl) titleEl.innerText = 'Resolving CNAME & DNS';
+        const subEl = document.getElementById('scanPopupSubtitle');
+        if (subEl) subEl.innerText = 'Querying name servers & detecting takeover risks...';
+        document.getElementById('scanPopupModal')?.classList.remove('hidden');
+
         try {
             const apiUrl = window.__ENV__?.API_BASE_URL;
             const res = await fetch(`${apiUrl}/api/monitor/dns`, {
@@ -42,6 +48,7 @@ export default function ScannerDNS() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
@@ -53,10 +60,12 @@ export default function ScannerDNS() {
             } else {
                 setResults(data);
                 setLoading(false);
+                document.getElementById('scanPopupModal')?.classList.add('hidden');
             }
         } catch (e) {
             setError(e.message);
             setLoading(false);
+            document.getElementById('scanPopupModal')?.classList.add('hidden');
         }
     };
 

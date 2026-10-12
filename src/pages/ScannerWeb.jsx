@@ -63,6 +63,7 @@ export default function ScannerWeb() {
                         if (scan?.status === 'complete') {
                             clearInterval(pollInterval);
                             setIsScanning(false);
+                            document.getElementById('scanPopupModal')?.classList.add('hidden');
 
                             let toastText = '';
                             if (!scan.isRescan) {
@@ -154,7 +155,7 @@ export default function ScannerWeb() {
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-3">
                 <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    1. Selected Asset Surface Category
+                    1. Selected Asset Category
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="p-3.5 rounded-2xl border transition-all flex items-center gap-3.5 border-blue-500/60 bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/30">

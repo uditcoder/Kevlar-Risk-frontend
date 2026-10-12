@@ -21,6 +21,12 @@ export default function ScannerPorts() {
             return;
         }
 
+        const titleEl = document.getElementById('scanPopupTitle');
+        if (titleEl) titleEl.innerText = 'Scanning Network Ports';
+        const subEl = document.getElementById('scanPopupSubtitle');
+        if (subEl) subEl.innerText = 'Probing network endpoints & detecting open ports...';
+        document.getElementById('scanPopupModal')?.classList.remove('hidden');
+
         try {
             const apiUrl = window.__ENV__?.API_BASE_URL;
             const res = await fetch(`${apiUrl}/api/monitor/ports`, {
@@ -43,6 +49,7 @@ export default function ScannerPorts() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
@@ -54,10 +61,12 @@ export default function ScannerPorts() {
             } else {
                 setResults(data);
                 setLoading(false);
+                document.getElementById('scanPopupModal')?.classList.add('hidden');
             }
         } catch (e) {
             setError(e.message);
             setLoading(false);
+            document.getElementById('scanPopupModal')?.classList.add('hidden');
         }
     };
 

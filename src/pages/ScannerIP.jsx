@@ -34,6 +34,10 @@ export default function ScannerIP() {
             return;
         }
 
+        const titleEl = document.getElementById('scanPopupTitle');
+        if (titleEl) titleEl.innerText = 'Scanning Target IP';
+        const subEl = document.getElementById('scanPopupSubtitle');
+        if (subEl) subEl.innerText = 'Analyzing network perimeter & vulnerabilities...';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         setTimeout(async () => {
@@ -112,13 +116,14 @@ export default function ScannerIP() {
                     });
                 });
 
-                // Do not await Promise.all here if we want the user to be able to navigate away, 
-                // but since isScanning disables the button, we can await it or just release the UI lock immediately.
-                // Let's release the UI lock immediately so they can scan more while it polls in background.
-                setIsScanning(false);
-                setScanStatus({ hidden: false, text: 'Scans queued. Monitoring in background.', type: 'success' });
+                Promise.all(scanPromises).finally(() => {
+                    setIsScanning(false);
+                    document.getElementById('scanPopupModal')?.classList.add('hidden');
+                    setScanStatus({ hidden: false, text: 'Scans complete. View results in Incident tab.', type: 'success' });
+                });
                 
             } catch(e) {
+                document.getElementById('scanPopupModal')?.classList.add('hidden');
                 setScanStatus({ hidden: false, text: 'Scan Failed: ' + e.message, type: 'error' });
                 setIsScanning(false);
             }
@@ -129,7 +134,7 @@ export default function ScannerIP() {
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
             <div className="space-y-3">
                 <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    1. Selected Asset Surface Category
+                    1. Selected Asset Category
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="p-3.5 rounded-2xl border transition-all flex items-center gap-3.5 border-emerald-500/60 bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30">
@@ -185,7 +190,7 @@ export default function ScannerIP() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 pt-3 border-t border-white/5">
                     <button type="submit" disabled={isScanning}
                         className={`bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-7 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 text-xs ${isScanning ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>{isScanning ? "Running Live Security Scan (5-15s)..." : "Scan & Add to Surface"}</span>
+                        <span>{isScanning ? "Running Live Security Scan (5-15s)..." : "Scan & Add to Kevlar Risk"}</span>
                         <svg className={`w-4 h-4 spinner text-white ${isScanning ? '' : 'hidden'}`} fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
