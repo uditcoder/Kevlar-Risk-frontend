@@ -118,6 +118,15 @@ export function AppProvider({ children }) {
   };
 
   const logout = () => {
+    if (token) {
+      try {
+        const API_BASE = window.__ENV__?.API_BASE_URL || '';
+        fetch(`${API_BASE}/api/auth/logout`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => {});
+      } catch (e) {}
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem('cg_user');
