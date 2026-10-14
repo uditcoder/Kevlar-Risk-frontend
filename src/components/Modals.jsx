@@ -260,9 +260,15 @@ export default function Modals() {
                     </p>
 
                     {/* Continuous Cyber Loader Bar */}
-                    <div className="w-full h-1.5 rounded-full bg-[#141829] border border-white/5 overflow-hidden relative my-5">
+                    <div className="w-full h-1.5 rounded-full bg-[#141829] border border-white/5 overflow-hidden relative my-4">
                         <div className="absolute top-0 bottom-0 w-2/5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent rounded-full shadow-[0_0_12px_rgba(99,102,241,0.9)] animate-cyber-sweep" />
                     </div>
+
+                    {/* Standard Duration Notice */}
+                    <p className="text-[11px] text-slate-400 mb-4 flex items-center justify-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+                        Please wait, this scan may take a few minutes or more.
+                    </p>
 
                     {/* Run in Background Button */}
                     <button

@@ -4,5 +4,5 @@ window.__ENV__ = Object.freeze({
   "API_BASE_URL": "http://localhost:3001",
   "PORT": "3000",
   "APP_NAME": "Kevlar Risk",
-  "GENERATED_AT": "2026-10-13T06:53:21.865Z"
+  "GENERATED_AT": "2026-10-13T17:00:02.319Z"
 });
