@@ -191,37 +191,42 @@ export default function IncidentCenter() {
                                     const highestSeverity = ['critical', 'high', 'medium', 'low', 'info'].find(s => group.findings.some(f => f.severity === s)) || 'info';
                                     const primaryFinding = group.findings.find(f => f.severity === highestSeverity) || group.findings[0] || {};
                                     
-                                    const getDisplayType = (finding) => {
-                                        const assetType = (finding.assetType || '').toLowerCase();
+                                    const getDisplayType = (finding, groupItem) => {
+                                        // Priority 1: Check explicit scan/asset type from scan
+                                        const rawType = (finding.assetType || groupItem?.assetType || '').toLowerCase();
+                                        if (rawType === 'vpn') return 'VPN AUDIT';
+                                        if (rawType === 'ip') return 'IP SCAN';
+                                        if (rawType === 'url') return 'WEB URL SCAN';
+                                        if (rawType === 'hosts') return 'HOST DISCOVERY';
+                                        if (rawType === 'ports') return 'PORT SCAN';
+                                        if (rawType === 'dns') return 'DNS RESOLUTION';
+                                        if (rawType === 'status') return 'HTTP STATUS';
+
                                         const tags = Array.isArray(finding.tags) ? finding.tags : [];
                                         const templateId = (finding.templateId || '').toLowerCase();
                                         const name = (finding.name || '').toLowerCase();
 
-                                        if (assetType === 'hosts' || tags.includes('hosts') || tags.includes('subfinder') || templateId.includes('host') || name.includes('subdomain') || name.includes('live host')) {
+                                        if (tags.includes('vpn')) return 'VPN AUDIT';
+                                        if (tags.includes('hosts') || tags.includes('subfinder') || templateId.includes('subfinder') || name.includes('subdomain') || name.includes('live host')) {
                                             return 'HOST DISCOVERY';
                                         }
-                                        if (assetType === 'ports' || tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port') || name.includes('open port')) {
+                                        if (tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port') || name.includes('open port')) {
                                             return 'PORT SCAN';
                                         }
-                                        if (assetType === 'dns' || tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname') || templateId.includes('dns-') || name.includes('dns') || name.includes('cname')) {
+                                        if (tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname') || templateId.includes('dns-') || name.includes('dns record') || name.includes('cname')) {
                                             return 'DNS RESOLUTION';
                                         }
-                                        if (assetType === 'status' || tags.includes('httpx') || tags.includes('status-monitor') || templateId.includes('http-status') || name.startsWith('http ')) {
+                                        if (tags.includes('httpx') || tags.includes('status-monitor') || templateId.includes('http-status') || name.includes('status code')) {
                                             return 'HTTP STATUS';
                                         }
-                                        if (assetType === 'vpn' || tags.includes('vpn')) {
-                                            return 'VPN AUDIT';
-                                        }
-                                        if (assetType === 'ip') {
-                                            return 'IP SCAN';
-                                        }
-                                        if (assetType === 'url') {
-                                            return 'WEB URL SCAN';
-                                        }
-                                        return `${(finding.assetType || 'DOMAIN').toUpperCase()} SCAN`;
+
+                                        // Fallback based on host target format
+                                        const host = groupItem?.host || '';
+                                        if (/^(\d{1,3}\.){3}\d{1,3}/.test(host)) return 'IP SCAN';
+                                        return 'WEB URL SCAN';
                                     };
 
-                                    const displayType = getDisplayType(primaryFinding);
+                                    const displayType = getDisplayType(primaryFinding, group);
                                     const typeCode = displayType.includes('HOST') ? 'HOST' :
                                                      displayType.includes('PORT') ? 'PORT' :
                                                      displayType.includes('DNS') ? 'DNSX' :
@@ -250,6 +255,8 @@ export default function IncidentCenter() {
                                                     displayType.includes('PORT') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
                                                     displayType.includes('DNS') ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' :
                                                     displayType.includes('HTTP') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
+                                                    displayType.includes('VPN') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                                                    displayType.includes('IP') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30' :
                                                     'bg-purple-500/10 text-purple-300 border border-purple-500/30'
                                                 }`}>
                                                     {displayType}
