@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerHosts() {
-    const { token } = useAppContext();
+    const { token, refreshScans } = useAppContext();
     const [domain, setDomain] = useState('');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
+    const [hasScanned, setHasScanned] = useState(false);
+    const [scanMeta, setScanMeta] = useState({ isRescan: false, newFindingsCount: 0 });
 
     const handleScan = async (e) => {
         e.preventDefault();
@@ -15,6 +17,8 @@ export default function ScannerHosts() {
         setError('');
         setResults(null);
         setSearch('');
+        setHasScanned(false);
+        setScanMeta({ isRescan: false, newFindingsCount: 0 });
 
         if (!domain.trim()) {
             setError('Please enter a root domain.');
@@ -50,19 +54,32 @@ export default function ScannerHosts() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            setHasScanned(true);
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
-                                setResults(statusData.task.results || null);
+                                const task = statusData.task;
+                                setResults(task.results || null);
+                                setScanMeta({
+                                    isRescan: !!task.isRescan,
+                                    newFindingsCount: task.newFindingsCount || 0
+                                });
+                                refreshScans?.();
                             }
                         }
                     } catch (err) {}
                 }, 5000);
             } else {
                 setResults(data);
+                setScanMeta({
+                    isRescan: !!data.isRescan,
+                    newFindingsCount: data.newFindingsCount || 0
+                });
                 setLoading(false);
+                setHasScanned(true);
                 document.getElementById('scanPopupModal')?.classList.add('hidden');
+                refreshScans?.();
             }
         } catch (e) {
             setError(e.message);
@@ -117,33 +134,34 @@ export default function ScannerHosts() {
                 <div className="p-3.5 rounded-xl bg-red-950/40 text-red-300 border border-red-800/50 text-xs font-semibold">{error}</div>
             )}
 
-            {results && (
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                            {results.count} Host(s) discovered for {results.domain}
-                        </div>
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Filter hosts..."
-                            className="bg-[#111424] border border-white/10 text-white rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-emerald-500 transition-all w-48"
-                        />
+            {hasScanned && !loading && !error && results && (
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                    results.count === 0
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
+                        : scanMeta.isRescan
+                            ? (scanMeta.newFindingsCount > 0 
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                                : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
+                            : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <span>
+                            {results.count === 0
+                                ? 'ℹ️'
+                                : scanMeta.isRescan 
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                                    : '✅'}
+                        </span>
+                        <span>
+                            {results.count === 0
+                                ? (scanMeta.isRescan ? 'No new results found.' : 'No results found.')
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0
+                                        ? 'New results found, check Incident tab.'
+                                        : 'No new results found.')
+                                    : 'Results found, check Incident tab.'}
+                        </span>
                     </div>
-                    {filtered.length === 0 ? (
-                        <div className="py-8 text-center text-slate-500 text-xs bg-[#101423]/50 rounded-2xl border border-dashed border-white/10">No hosts found.</div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-96 overflow-y-auto pr-1">
-                            {filtered.map((h, i) => (
-                                <div key={i} className="flex items-center gap-2 bg-[#111424] rounded-lg border border-white/5 px-3 py-2 hover:border-emerald-500/30 transition-colors">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                                    <span className="text-xs font-mono text-slate-300 truncate">{h.host || h}</span>
-                                    {h.source && <span className="ml-auto text-[9px] text-slate-500 shrink-0">{Array.isArray(h.source) ? h.source[0] : h.source}</span>}
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
         </div>

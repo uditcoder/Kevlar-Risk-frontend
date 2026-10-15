@@ -3,12 +3,17 @@ import { useAppContext } from '../context/AppContext';
 import DateRangePicker from '../components/DateRangePicker';
 
 export default function IncidentCenter() {
-    const { allFindings, groupedFindings, setSelectedAssetHost, user } = useAppContext();
+    const { allFindings, groupedFindings, setSelectedAssetHost, user, refreshScans } = useAppContext();
     const [dateFilter, setDateFilter] = useState({ start: null, end: null });
     const [severityFilter, setSeverityFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
+
+    // Auto-fetch latest scans as soon as user opens the Incident Center
+    useEffect(() => {
+        refreshScans?.();
+    }, [refreshScans]);
 
     // Reset to page 1 whenever any filter changes
     useEffect(() => {
@@ -58,13 +63,14 @@ export default function IncidentCenter() {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `findings_${group.host}_${new Date().getTime()}.csv`);
+        link.setAttribute("download", `findings_${group.host}_${group.assetType || 'scan'}_${new Date().getTime()}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const filteredGroups = useMemo(() => {
+    // Base incidents respecting search and date filters
+    const searchableGroups = useMemo(() => {
         let result = groupedFindings;
 
         // Quick Search by Host or Finding Name
@@ -73,16 +79,6 @@ export default function IncidentCenter() {
             result = result.filter(group => {
                 if (group.host && group.host.toLowerCase().includes(query)) return true;
                 return group.findings.some(f => (f.name && f.name.toLowerCase().includes(query)) || (f.templateId && f.templateId.toLowerCase().includes(query)));
-            });
-        }
-
-        // Filter by Severity Category (Issues vs Safe)
-        if (severityFilter !== 'all') {
-            result = result.filter(group => {
-                const hasIssue = group.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity));
-                if (severityFilter === 'issues') return hasIssue;
-                if (severityFilter === 'safe') return !hasIssue;
-                return true;
             });
         }
 
@@ -104,7 +100,30 @@ export default function IncidentCenter() {
         }
 
         return result;
-    }, [groupedFindings, dateFilter, severityFilter, searchQuery]);
+    }, [groupedFindings, dateFilter, searchQuery]);
+
+    // Incident-level counts (number of incident rows/cards)
+    const totalIncidentsCount = searchableGroups.length;
+    const issueIncidentsCount = useMemo(() => {
+        return searchableGroups.filter(g => g.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity))).length;
+    }, [searchableGroups]);
+    const safeIncidentsCount = totalIncidentsCount - issueIncidentsCount;
+
+    const filteredGroups = useMemo(() => {
+        let result = searchableGroups;
+
+        // Filter by Severity Category (Issues vs Safe)
+        if (severityFilter !== 'all') {
+            result = result.filter(group => {
+                const hasIssue = group.findings.some(f => ['critical', 'high', 'medium', 'low'].includes(f.severity));
+                if (severityFilter === 'issues') return hasIssue;
+                if (severityFilter === 'safe') return !hasIssue;
+                return true;
+            });
+        }
+
+        return result;
+    }, [searchableGroups, severityFilter]);
 
     const totalPages = Math.max(1, Math.ceil(filteredGroups.length / pageSize));
     const paginatedGroups = useMemo(() => {
@@ -132,13 +151,13 @@ export default function IncidentCenter() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => setSeverityFilter('all')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'all' ? 'bg-blue-600 text-white border border-blue-500/30 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
-                            All (<span className={severityFilter === 'all' ? 'text-blue-200' : 'text-slate-500'}>{allFindings.length}</span>)
+                            All (<span className={severityFilter === 'all' ? 'text-blue-200' : 'text-slate-500'}>{totalIncidentsCount}</span>)
                         </button>
                         <button onClick={() => setSeverityFilter('issues')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'issues' ? 'bg-purple-600 text-white border border-purple-500/30 shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
-                            Issues (<span className={severityFilter === 'issues' ? 'text-purple-200' : 'text-slate-500'}>{allFindings.filter(f => ['critical', 'high', 'medium', 'low'].includes(f.severity)).length}</span>)
+                            Issues (<span className={severityFilter === 'issues' ? 'text-purple-200' : 'text-slate-500'}>{issueIncidentsCount}</span>)
                         </button>
                         <button onClick={() => setSeverityFilter('safe')} className={`inc-filter-pill px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${severityFilter === 'safe' ? 'bg-emerald-600 text-white border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-[#131729] text-slate-400 hover:text-white border border-white/5'}`}>
-                            Safe / Info (<span className={severityFilter === 'safe' ? 'text-emerald-200' : 'text-slate-500'}>{allFindings.filter(f => !f.severity || f.severity === 'info' || f.severity === 'unknown').length}</span>)
+                            Safe / Info (<span className={severityFilter === 'safe' ? 'text-emerald-200' : 'text-slate-500'}>{safeIncidentsCount}</span>)
                         </button>
                     </div>
 
@@ -192,37 +211,59 @@ export default function IncidentCenter() {
                                     const primaryFinding = group.findings.find(f => f.severity === highestSeverity) || group.findings[0] || {};
                                     
                                     const getDisplayType = (finding, groupItem) => {
-                                        // Priority 1: Check explicit scan/asset type from scan
+                                        const tags = Array.isArray(finding.tags) ? finding.tags.map(t => String(t).toLowerCase()) : [];
+                                        const templateId = (finding.templateId || '').toLowerCase();
+                                        const name = (finding.name || '').toLowerCase();
                                         const rawType = (finding.assetType || groupItem?.assetType || '').toLowerCase();
-                                        if (rawType === 'vpn') return 'VPN AUDIT';
-                                        if (rawType === 'ip') return 'IP SCAN';
+
+                                        // 1. Explicit tool category
                                         if (rawType === 'url') return 'WEB URL SCAN';
+                                        if (rawType === 'vpn') return 'VPN AUDIT';
                                         if (rawType === 'hosts') return 'HOST DISCOVERY';
                                         if (rawType === 'ports') return 'PORT SCAN';
                                         if (rawType === 'dns') return 'DNS RESOLUTION';
                                         if (rawType === 'status') return 'HTTP STATUS';
 
-                                        const tags = Array.isArray(finding.tags) ? finding.tags : [];
-                                        const templateId = (finding.templateId || '').toLowerCase();
-                                        const name = (finding.name || '').toLowerCase();
-
-                                        if (tags.includes('vpn')) return 'VPN AUDIT';
-                                        if (tags.includes('hosts') || tags.includes('subfinder') || templateId.includes('subfinder') || name.includes('subdomain') || name.includes('live host')) {
+                                        // 2. High-precision signature check from monitor tool outputs
+                                        if (
+                                            tags.includes('subfinder') || 
+                                            templateId === 'subdomain-enumeration-summary' || 
+                                            templateId === 'live-host-discovered' || 
+                                            name.includes('subdomain enumeration')
+                                        ) {
                                             return 'HOST DISCOVERY';
                                         }
-                                        if (tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port') || name.includes('open port')) {
-                                            return 'PORT SCAN';
-                                        }
-                                        if (tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname') || templateId.includes('dns-') || name.includes('dns record') || name.includes('cname')) {
+
+                                        if (
+                                            tags.includes('dnsx') || 
+                                            templateId === 'dns-resolution' || 
+                                            templateId === 'dns-cname-record' || 
+                                            name.includes('dns resolution active') || 
+                                            name.includes('cname record exposed')
+                                        ) {
                                             return 'DNS RESOLUTION';
                                         }
-                                        if (tags.includes('httpx') || tags.includes('status-monitor') || templateId.includes('http-status') || name.includes('status code')) {
+
+                                        if (
+                                            tags.includes('httpx') || 
+                                            templateId.startsWith('http-status-') || 
+                                            name.startsWith('http ')
+                                        ) {
                                             return 'HTTP STATUS';
                                         }
 
-                                        // Fallback based on host target format
-                                        const host = groupItem?.host || '';
-                                        if (/^(\d{1,3}\.){3}\d{1,3}/.test(host)) return 'IP SCAN';
+                                        if (
+                                            tags.includes('naabu') || 
+                                            templateId.startsWith('open-port-') || 
+                                            name.startsWith('open port detected')
+                                        ) {
+                                            return 'PORT SCAN';
+                                        }
+
+                                        if (rawType === 'ip' || /^(\d{1,3}\.){3}\d{1,3}/.test(groupItem?.host || '')) {
+                                            return 'IP SCAN';
+                                        }
+
                                         return 'WEB URL SCAN';
                                     };
 
@@ -239,7 +280,7 @@ export default function IncidentCenter() {
                                     const incidentId = `${prefix}-${typeCode}-${dateStr}-${String(globalIndex + 1).padStart(4, '0')}`;
 
                                     return (
-                                        <tr key={group.host || globalIndex} className="border-b border-white/5 bg-[#12162a]/30 hover:bg-[#161b33] transition-colors group-row">
+                                        <tr key={group.key || group.id || `${group.host}_${displayType}_${globalIndex}`} className="border-b border-white/5 bg-[#12162a]/30 hover:bg-[#161b33] transition-colors group-row">
                                             <td className="px-5 py-4 whitespace-nowrap font-mono text-slate-300">
                                                 {incidentId}
                                             </td>
@@ -277,7 +318,7 @@ export default function IncidentCenter() {
                                             </td>
                                             <td className="px-5 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => setSelectedAssetHost(group.host)} className="bg-[#2d1b4e] hover:bg-[#3a2365] text-purple-200 border border-purple-500/20 rounded-lg px-4 py-2 transition-colors text-[10px] font-bold tracking-wider uppercase cursor-pointer">
+                                                    <button onClick={() => setSelectedAssetHost(group.key || group.id || group.host)} className="bg-[#2d1b4e] hover:bg-[#3a2365] text-purple-200 border border-purple-500/20 rounded-lg px-4 py-2 transition-colors text-[10px] font-bold tracking-wider uppercase cursor-pointer">
                                                         View Details
                                                     </button>
                                                     <button onClick={() => downloadCSV(group)} title="Download CSV" className="flex items-center justify-center p-2 bg-[#131729] hover:bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 rounded-lg transition-colors cursor-pointer">

@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerDNS() {
-    const { token } = useAppContext();
+    const { token, refreshScans } = useAppContext();
     const [domain, setDomain] = useState('');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [error, setError] = useState('');
+    const [hasScanned, setHasScanned] = useState(false);
+    const [scanMeta, setScanMeta] = useState({ isRescan: false, newFindingsCount: 0 });
 
     const handleScan = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         setResults(null);
+        setHasScanned(false);
+        setScanMeta({ isRescan: false, newFindingsCount: 0 });
 
         if (!domain.trim()) {
             setError('Please enter a domain name.');
@@ -48,19 +52,32 @@ export default function ScannerDNS() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            setHasScanned(true);
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
-                                setResults(statusData.task.results || null);
+                                const task = statusData.task;
+                                setResults(task.results || null);
+                                setScanMeta({
+                                    isRescan: !!task.isRescan,
+                                    newFindingsCount: task.newFindingsCount || 0
+                                });
+                                refreshScans?.();
                             }
                         }
                     } catch (err) {}
                 }, 5000);
             } else {
                 setResults(data);
+                setScanMeta({
+                    isRescan: !!data.isRescan,
+                    newFindingsCount: data.newFindingsCount || 0
+                });
                 setLoading(false);
+                setHasScanned(true);
                 document.getElementById('scanPopupModal')?.classList.add('hidden');
+                refreshScans?.();
             }
         } catch (e) {
             setError(e.message);
@@ -120,33 +137,34 @@ export default function ScannerDNS() {
                 <div className="p-3.5 rounded-xl bg-red-950/40 text-red-300 border border-red-800/50 text-xs font-semibold">{error}</div>
             )}
 
-            {results && (
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">{results.records?.length || 0} DNS Record(s) for {results.domain}</div>
-                    {results.records?.length === 0 ? (
-                        <div className="py-8 text-center text-slate-500 text-xs bg-[#101423]/50 rounded-2xl border border-dashed border-white/10">No DNS records found.</div>
-                    ) : (
-                        <div className="space-y-2">
-                            {results.records?.map((r, i) => (
-                                <div key={i} className="bg-[#111424] rounded-xl border border-white/5 p-3.5 space-y-2">
-                                    <div className="flex flex-wrap gap-2 items-center">
-                                        <span className="font-mono text-xs text-white font-bold">{r.host}</span>
-                                        {recordTypes.filter(t => r[t]).map(t => (
-                                            <span key={t} className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${typeColors[t] || 'text-slate-400 bg-slate-800 border-slate-700'}`}>{t}</span>
-                                        ))}
-                                        {r.cname && <span className="text-[10px] text-amber-400 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded font-semibold">⚠ Check Takeover Risk</span>}
-                                    </div>
-                                    <div className="space-y-1 text-[11px] font-mono text-slate-400">
-                                        {r.a && r.a.map((v, j) => <div key={j}><span className="text-blue-400 font-semibold">A </span>{v}</div>)}
-                                        {r.cname && r.cname.map((v, j) => <div key={j}><span className="text-purple-400 font-semibold">CNAME </span>{v}</div>)}
-                                        {r.mx && r.mx.map((v, j) => <div key={j}><span className="text-emerald-400 font-semibold">MX </span>{v}</div>)}
-                                        {r.ns && r.ns.map((v, j) => <div key={j}><span className="text-amber-400 font-semibold">NS </span>{v}</div>)}
-                                        {r.txt && r.txt.map((v, j) => <div key={j} className="break-all"><span className="text-slate-300 font-semibold">TXT </span>{v}</div>)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {hasScanned && !loading && !error && results && (
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                    results.records?.length === 0
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
+                        : scanMeta.isRescan
+                            ? (scanMeta.newFindingsCount > 0 
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                                : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
+                            : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <span>
+                            {results.records?.length === 0
+                                ? 'ℹ️'
+                                : scanMeta.isRescan 
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                                    : '✅'}
+                        </span>
+                        <span>
+                            {results.records?.length === 0
+                                ? (scanMeta.isRescan ? 'No new results found.' : 'No results found.')
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0
+                                        ? 'New results found, check Incident tab.'
+                                        : 'No new results found.')
+                                    : 'Results found, check Incident tab.'}
+                        </span>
+                    </div>
                 </div>
             )}
         </div>

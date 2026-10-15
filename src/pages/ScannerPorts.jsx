@@ -2,18 +2,22 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerPorts() {
-    const { token } = useAppContext();
+    const { token, refreshScans } = useAppContext();
     const [target, setTarget] = useState('');
     const [topPorts, setTopPorts] = useState('100');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [error, setError] = useState('');
+    const [hasScanned, setHasScanned] = useState(false);
+    const [scanMeta, setScanMeta] = useState({ isRescan: false, newFindingsCount: 0 });
 
     const handleScan = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         setResults(null);
+        setHasScanned(false);
+        setScanMeta({ isRescan: false, newFindingsCount: 0 });
 
         if (!target.trim()) {
             setError('Please enter a target host or IP.');
@@ -49,19 +53,32 @@ export default function ScannerPorts() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            setHasScanned(true);
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
-                                setResults(statusData.task.results || null);
+                                const task = statusData.task;
+                                setResults(task.results || null);
+                                setScanMeta({
+                                    isRescan: !!task.isRescan,
+                                    newFindingsCount: task.newFindingsCount || 0
+                                });
+                                refreshScans?.();
                             }
                         }
                     } catch (err) {}
                 }, 5000);
             } else {
                 setResults(data);
+                setScanMeta({
+                    isRescan: !!data.isRescan,
+                    newFindingsCount: data.newFindingsCount || 0
+                });
                 setLoading(false);
+                setHasScanned(true);
                 document.getElementById('scanPopupModal')?.classList.add('hidden');
+                refreshScans?.();
             }
         } catch (e) {
             setError(e.message);
@@ -134,27 +151,34 @@ export default function ScannerPorts() {
                 <div className="p-3.5 rounded-xl bg-red-950/40 text-red-300 border border-red-800/50 text-xs font-semibold">{error}</div>
             )}
 
-            {results && (
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">{results.ports?.length || 0} Open Port(s) on {results.target}</div>
-                        <div className="flex items-center gap-3 text-[10px]">
-                            <span className="flex items-center gap-1 text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/> High Risk</span>
-                            <span className="flex items-center gap-1 text-amber-400"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block"/> Medium Risk</span>
-                            <span className="flex items-center gap-1 text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"/> Standard</span>
-                        </div>
+            {hasScanned && !loading && !error && results && (
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                    results.ports?.length === 0
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
+                        : scanMeta.isRescan
+                            ? (scanMeta.newFindingsCount > 0 
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                                : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
+                            : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <span>
+                            {results.ports?.length === 0
+                                ? 'ℹ️'
+                                : scanMeta.isRescan 
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                                    : '✅'}
+                        </span>
+                        <span>
+                            {results.ports?.length === 0
+                                ? (scanMeta.isRescan ? 'No new results found.' : 'No results found.')
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0
+                                        ? 'New results found, check Incident tab.'
+                                        : 'No new results found.')
+                                    : 'Results found, check Incident tab.'}
+                        </span>
                     </div>
-                    {results.ports?.length === 0 ? (
-                        <div className="py-8 text-center text-slate-500 text-xs bg-[#101423]/50 rounded-2xl border border-dashed border-white/10">No open ports detected.</div>
-                    ) : (
-                        <div className="flex flex-wrap gap-2">
-                            {results.ports?.map((p, i) => (
-                                <span key={i} className={`px-3 py-1.5 rounded-lg border text-xs font-bold font-mono ${getPortRiskColor(p.port)}`}>
-                                    {p.port}/{p.protocol}
-                                </span>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
         </div>
