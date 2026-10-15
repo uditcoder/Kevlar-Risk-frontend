@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerVPN() {
-    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token } = useAppContext();
+    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token, refreshScans } = useAppContext();
 
     const handleScanSubmit = async (e) => {
         e.preventDefault();
@@ -55,25 +55,24 @@ export default function ScannerVPN() {
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
 
                             let toastText = '';
+                            const hasIssues = scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0);
                             if (!scan.isRescan) {
                                 toastText = scan.rawCount > 0 
-                                    ? `Results found, see findings in Incident tab` 
+                                    ? `Results found, check Incident tab.` 
                                     : `No results found.`;
                             } else {
                                 if (scan.newFindingsCount > 0) {
-                                    toastText = `New results found, see findings in Incident tab`;
+                                    toastText = `New results found, check Incident tab.`;
                                 } else {
                                     toastText = `No new results found.`;
                                 }
                             }
 
-                            setScanStatus({ hidden: false, text: toastText, type: (scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0)) ? 'error' : 'success' });
-                            setToastMessage(`✅ ${toastText}`);
+                            setScanStatus({ hidden: false, text: toastText, type: hasIssues ? 'error' : 'success' });
+                            setToastMessage(`${hasIssues ? '⚠️' : '✅'} ${toastText}`);
                             setTimeout(() => setToastMessage(null), 8000);
 
-                            if (scan.findings && scan.findings.length > 0) {
-                                setAllFindings(prev => [...prev, ...scan.findings]);
-                            }
+                            refreshScans?.();
                             setMonitoredAssets(prev => {
                                 const newAsset = {
                                     target,

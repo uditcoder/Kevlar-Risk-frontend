@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerStatus() {
-    const { token } = useAppContext();
+    const { token, refreshScans } = useAppContext();
     const [targets, setTargets] = useState('');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState([]);
     const [error, setError] = useState('');
+    const [hasScanned, setHasScanned] = useState(false);
+    const [scanMeta, setScanMeta] = useState({ isRescan: false, newFindingsCount: 0 });
 
     const handleScan = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         setResults([]);
+        setHasScanned(false);
+        setScanMeta({ isRescan: false, newFindingsCount: 0 });
 
         const targetList = targets.split('\n').map(t => t.trim()).filter(Boolean);
         if (!targetList.length) {
@@ -49,19 +53,32 @@ export default function ScannerStatus() {
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
+                            setHasScanned(true);
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
                             if (statusData.task.status === 'failed') {
                                 setError('Background scan failed.');
                             } else {
-                                setResults(statusData.task.results?.results || []);
+                                const task = statusData.task;
+                                setResults(task.results?.results || []);
+                                setScanMeta({
+                                    isRescan: !!task.isRescan,
+                                    newFindingsCount: task.newFindingsCount || 0
+                                });
+                                refreshScans?.();
                             }
                         }
                     } catch (err) {}
                 }, 5000);
             } else {
                 setResults(data.results || []);
+                setScanMeta({
+                    isRescan: !!data.isRescan,
+                    newFindingsCount: data.newFindingsCount || 0
+                });
                 setLoading(false);
+                setHasScanned(true);
                 document.getElementById('scanPopupModal')?.classList.add('hidden');
+                refreshScans?.();
             }
         } catch (e) {
             setError(e.message);
@@ -122,34 +139,33 @@ export default function ScannerStatus() {
                 <div className="p-3.5 rounded-xl bg-red-950/40 text-red-300 border border-red-800/50 text-xs font-semibold">{error}</div>
             )}
 
-            {results.length > 0 && (
-                <div className="space-y-3">
-                    <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">{results.length} Result(s)</div>
-                    <div className="overflow-x-auto rounded-xl border border-white/5">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="bg-[#111424] text-slate-400 text-left">
-                                    <th className="px-4 py-3 font-semibold">URL</th>
-                                    <th className="px-4 py-3 font-semibold">Status</th>
-                                    <th className="px-4 py-3 font-semibold">Title</th>
-                                    <th className="px-4 py-3 font-semibold">Server</th>
-                                    <th className="px-4 py-3 font-semibold">Technologies</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {results.map((r, i) => (
-                                    <tr key={i} className="border-t border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="px-4 py-3 font-mono text-blue-400 break-all max-w-xs">{r.url || r.input}</td>
-                                        <td className={`px-4 py-3 font-bold ${getStatusColor(r['status-code'] || r.status_code)}`}>
-                                            {r['status-code'] || r.status_code || '—'}
-                                        </td>
-                                        <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{r.title || '—'}</td>
-                                        <td className="px-4 py-3 text-slate-400">{r.webserver || r.server || '—'}</td>
-                                        <td className="px-4 py-3 text-slate-400">{Array.isArray(r.tech) ? r.tech.join(', ') : (r.tech || '—')}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            {hasScanned && !loading && !error && (
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                    results.length === 0
+                        ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
+                        : scanMeta.isRescan
+                            ? (scanMeta.newFindingsCount > 0 
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                                : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
+                            : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <span>
+                            {results.length === 0 
+                                ? 'ℹ️' 
+                                : scanMeta.isRescan 
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                                    : '✅'}
+                        </span>
+                        <span>
+                            {results.length === 0
+                                ? (scanMeta.isRescan ? 'No new results found.' : 'No results found.')
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0
+                                        ? 'New results found, check Incident tab.'
+                                        : 'No new results found.')
+                                    : 'Results found, check Incident tab.'}
+                        </span>
                     </div>
                 </div>
             )}

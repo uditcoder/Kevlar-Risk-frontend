@@ -17,12 +17,33 @@ export default function SetupAccount() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { setToastMessage } = useAppContext();
-  const navigate = useNavigate();
+  const [checkingToken, setCheckingToken] = useState(true);
+  const [tokenExpired, setTokenExpired] = useState(false);
 
   useEffect(() => {
     if (!token) {
       setError('Invalid or missing setup token. Please check your email link.');
+      setCheckingToken(false);
+      return;
     }
+
+    const checkToken = async () => {
+      try {
+        const apiUrl = window.__ENV__?.API_BASE_URL;
+        const res = await fetch(`${apiUrl}/api/auth/verify-setup-token?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (!res.ok || !data.valid) {
+          setTokenExpired(true);
+          setError(data.error || 'This account setup link has already been used or has expired. Please log in directly.');
+        }
+      } catch (err) {
+        // Fallback: allow form submission if network fails
+      } finally {
+        setCheckingToken(false);
+      }
+    };
+
+    checkToken();
   }, [token]);
 
   const handleSubmit = async (e) => {
@@ -115,7 +136,12 @@ export default function SetupAccount() {
           </div>
         )}
 
-        {token && !error?.includes('missing setup token') ? (
+        {checkingToken ? (
+          <div className="py-8 text-center text-slate-400">
+            <div className="inline-block animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mb-3"></div>
+            <p>Verifying invitation link...</p>
+          </div>
+        ) : token && !tokenExpired && !error?.includes('missing setup token') ? (
           requireOtp ? (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>

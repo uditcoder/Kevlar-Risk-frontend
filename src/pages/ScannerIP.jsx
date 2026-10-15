@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export default function ScannerIP() {
-    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token } = useAppContext();
+    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token, refreshScans } = useAppContext();
     const [ipFields, setIpFields] = useState([{ id: 1, ip: '', range: '' }]);
 
     const addField = () => {
@@ -72,19 +72,20 @@ export default function ScannerIP() {
                                     clearInterval(pollInterval);
                                     
                                     let toastText = '';
+                                    const hasTargetIssues = scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0);
                                     if (!scan.isRescan) {
                                         toastText = scan.rawCount > 0 
-                                            ? `Results found, see findings in Incident tab for ${t}` 
+                                            ? `Results found, check Incident tab for ${t}` 
                                             : `No results found for ${t}.`;
                                     } else {
                                         if (scan.newFindingsCount > 0) {
-                                            toastText = `New results found, see findings in Incident tab for ${t}`;
+                                            toastText = `New results found, check Incident tab for ${t}`;
                                         } else {
                                             toastText = `No new results found for ${t}.`;
                                         }
                                     }
 
-                                    setToastMessage(`✅ ${toastText}`);
+                                    setToastMessage(`${hasTargetIssues ? '⚠️' : '✅'} ${toastText}`);
                                     setTimeout(() => setToastMessage(null), 8000);
 
                                     if (scan.findings && scan.findings.length > 0) {
@@ -104,22 +105,53 @@ export default function ScannerIP() {
                                         }
                                         return [...prev, newAsset];
                                     });
-                                    resolve(true);
+                                    resolve({
+                                        findingsCount: scan.rawCount || (scan.findings?.length || 0),
+                                        newFindingsCount: scan.newFindingsCount || 0,
+                                        isRescan: !!scan.isRescan
+                                    });
                                 } else if (scan?.status === 'failed') {
                                     clearInterval(pollInterval);
                                     setToastMessage(`❌ Scan failed on server for ${t}`);
                                     setTimeout(() => setToastMessage(null), 8000);
-                                    resolve(false);
+                                    resolve({ findingsCount: 0, newFindingsCount: 0, isRescan: false });
                                 }
                             } catch {}
                         }, 8000);
                     });
                 });
 
-                Promise.all(scanPromises).finally(() => {
+                Promise.all(scanPromises).then((results) => {
+                    const totalFindings = results.reduce((acc, r) => acc + (r?.findingsCount || 0), 0);
+                    const totalNewFindings = results.reduce((acc, r) => acc + (r?.newFindingsCount || 0), 0);
+                    const hasRescan = results.some(r => r?.isRescan);
+
+                    let statusText = '';
+                    let hasIssues = false;
+
+                    if (!hasRescan) {
+                        if (totalFindings > 0) {
+                            statusText = 'Results found, check Incident tab.';
+                            hasIssues = true;
+                        } else {
+                            statusText = 'No results found.';
+                            hasIssues = false;
+                        }
+                    } else {
+                        if (totalNewFindings > 0) {
+                            statusText = 'New results found, check Incident tab.';
+                            hasIssues = true;
+                        } else {
+                            statusText = 'No new results found.';
+                            hasIssues = false;
+                        }
+                    }
+
+                    refreshScans?.();
+                    setScanStatus({ hidden: false, text: statusText, type: hasIssues ? 'error' : 'success' });
+                }).finally(() => {
                     setIsScanning(false);
                     document.getElementById('scanPopupModal')?.classList.add('hidden');
-                    setScanStatus({ hidden: false, text: 'Scans complete. View results in Incident tab.', type: 'success' });
                 });
                 
             } catch(e) {

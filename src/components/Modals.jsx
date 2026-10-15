@@ -73,25 +73,37 @@ export default function Modals() {
     const [claudeIntelCache, setClaudeIntelCache] = useState({});
     const [loadingIntel, setLoadingIntel] = useState(false);
     const [showAttackChain, setShowAttackChain] = useState(false);
+    const modalContentRef = React.useRef(null);
+    const remediationContentRef = React.useRef(null);
 
     useEffect(() => {
         setModalPage(1);
         setActiveFinding(null);
         setShowAttackChain(false);
 
+        // Always scroll back to top whenever modal opens
+        if (modalContentRef.current) {
+            modalContentRef.current.scrollTop = 0;
+        }
+        if (remediationContentRef.current) {
+            remediationContentRef.current.scrollTop = 0;
+        }
+
         if (!selectedAssetHost) {
             setClaudeIntel(null);
             return;
         }
 
+        const cleanTargetHost = selectedAssetHost.split('__')[0];
+
         // Check if preloaded in findings or cached
-        const preloaded = modalFindings.find(f => f.aiIntelligence)?.aiIntelligence || claudeIntelCache[selectedAssetHost];
+        const preloaded = modalFindings.find(f => f.aiIntelligence)?.aiIntelligence || claudeIntelCache[cleanTargetHost] || claudeIntelCache[selectedAssetHost];
         if (preloaded) {
             setClaudeIntel(preloaded);
             setLoadingIntel(false);
         } else if (token) {
             // Automatically fetch simultaneously in background
-            fetchClaudeIntelAuto(selectedAssetHost);
+            fetchClaudeIntelAuto(cleanTargetHost);
         } else {
             setClaudeIntel(null);
         }
@@ -305,19 +317,20 @@ export default function Modals() {
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <h3 className="text-base font-bold text-white font-mono truncate max-w-[200px] sm:max-w-xs">{selectedAssetHost || 'Target'}</h3>
+                                        <h3 className="text-base font-bold text-white font-mono truncate max-w-[200px] sm:max-w-xs">{(selectedAssetHost || 'Target').split('__')[0]}</h3>
                                         <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
                                             {(() => {
                                                 const primary = modalFindings[0] || {};
                                                 const assetType = (primary.assetType || '').toLowerCase();
-                                                const tags = Array.isArray(primary.tags) ? primary.tags : [];
+                                                const tags = Array.isArray(primary.tags) ? primary.tags.map(t => String(t).toLowerCase()) : [];
                                                 const templateId = (primary.templateId || '').toLowerCase();
                                                 const name = (primary.name || '').toLowerCase();
-                                                if (assetType === 'hosts' || tags.includes('hosts') || tags.includes('subfinder') || templateId.includes('host') || name.includes('subdomain')) return 'HOST DISCOVERY';
-                                                if (assetType === 'ports' || tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port')) return 'PORT SCAN';
-                                                if (assetType === 'dns' || tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname')) return 'DNS RESOLUTION';
-                                                if (assetType === 'status' || tags.includes('httpx') || templateId.includes('http-status')) return 'HTTP STATUS';
-                                                if (assetType === 'vpn') return 'VPN';
+
+                                                if (assetType === 'hosts' || tags.includes('hosts') || tags.includes('subfinder') || tags.includes('subdomain-discovery') || templateId.includes('subfinder') || templateId.includes('subdomain') || name.includes('subdomain') || name.includes('live host')) return 'HOST DISCOVERY';
+                                                if (assetType === 'ports' || tags.includes('port-scan') || tags.includes('naabu') || templateId.includes('open-port') || name.includes('open port')) return 'PORT SCAN';
+                                                if (assetType === 'dns' || tags.includes('dnsx') || tags.includes('dns') || tags.includes('cname') || templateId.includes('dns-') || name.includes('dns record') || name.includes('dns resolution') || name.includes('cname')) return 'DNS RESOLUTION';
+                                                if (assetType === 'status' || tags.includes('httpx') || tags.includes('status-monitor') || templateId.includes('http-status') || name.includes('status code') || /^http\s+\d{3}/i.test(name)) return 'HTTP STATUS';
+                                                if (assetType === 'vpn' || tags.includes('vpn') || templateId.includes('vpn')) return 'VPN';
                                                 if (assetType === 'ip') return 'IP';
                                                 return 'WEB URL';
                                             })()}
@@ -346,7 +359,7 @@ export default function Modals() {
                         </div>
 
                         {/* MERGED CONTENT: CLAUDE AI INTELLIGENCE + NUCLEI FINDINGS */}
-                        <div className="flex-1 p-5 overflow-y-auto space-y-5 text-slate-200 text-xs custom-scrollbar">
+                        <div ref={modalContentRef} className="flex-1 p-5 overflow-y-auto space-y-5 text-slate-200 text-xs custom-scrollbar">
                             {/* 1. CLAUDE AI SECURITY THREAT ASSESSMENT (TOP CARD) */}
                             {loadingIntel ? (
                                 <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 flex items-center gap-3 animate-pulse">
@@ -616,13 +629,13 @@ export default function Modals() {
 
                             {/* Meta strip */}
                             <div className="px-5 py-2 bg-[#090b14] border-b border-white/5 flex items-center gap-4 text-[11px] text-slate-400 flex-wrap shrink-0">
-                                <span className="font-mono text-slate-300"><strong>Target:</strong> {selectedAssetHost}</span>
+                                <span className="font-mono text-slate-300"><strong>Target:</strong> {(selectedAssetHost || '').split('__')[0]}</span>
                                 {activeFinding.finding.templateId && <span className="font-mono"><strong>Template:</strong> {activeFinding.finding.templateId}</span>}
                                 {activeFinding.finding.matchedAt && <span className="font-mono text-emerald-400 truncate max-w-xs"><strong>Endpoint:</strong> {activeFinding.finding.matchedAt}</span>}
                             </div>
 
                             {/* Body */}
-                            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 text-slate-200 text-xs">
+                            <div ref={remediationContentRef} className="p-5 overflow-y-auto custom-scrollbar flex-1 text-slate-200 text-xs">
                                 {activeFinding.loading ? (
                                     <div className="flex flex-col items-center justify-center py-16 text-purple-400 space-y-4">
                                         <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center relative shadow-lg shadow-purple-500/10">

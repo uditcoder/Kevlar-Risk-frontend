@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function ScannerWeb() {
-    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, scheduledScans, setScheduledScans, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token } = useAppContext();
+    const { isScanning, setIsScanning, scanStatus, setScanStatus, setScanResult, scheduledScans, setScheduledScans, monitoredAssets, setMonitoredAssets, setAllFindings, setToastMessage, token, refreshScans } = useAppContext();
     const navigate = useNavigate();
     const [frequency, setFrequency] = useState('now'); // 'now' or 'monthly' or 'weekly'
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
@@ -66,13 +66,14 @@ export default function ScannerWeb() {
                             document.getElementById('scanPopupModal')?.classList.add('hidden');
 
                             let toastText = '';
+                            const hasIssues = scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0);
                             if (!scan.isRescan) {
                                 toastText = scan.rawCount > 0 
-                                    ? `Results found, see findings in Incident tab` 
+                                    ? `Results found, check Incident tab.` 
                                     : `No results found.`;
                             } else {
                                 if (scan.newFindingsCount > 0) {
-                                    toastText = `New results found, see findings in Incident tab`;
+                                    toastText = `New results found, check Incident tab.`;
                                 } else {
                                     toastText = `No new results found.`;
                                 }
@@ -88,14 +89,12 @@ export default function ScannerWeb() {
                                 toastText += ` | ${target} scheduled to rescan on ${nextWeek.toLocaleDateString()}`;
                             }
 
-                            setScanStatus({ hidden: false, text: toastText, type: (scan.newFindingsCount > 0 || (!scan.isRescan && scan.rawCount > 0)) ? 'error' : 'success' });
-                            setToastMessage(`✅ ${toastText}`);
+                            setScanStatus({ hidden: false, text: toastText, type: hasIssues ? 'error' : 'success' });
+                            setToastMessage(`${hasIssues ? '⚠️' : '✅'} ${toastText}`);
                             setTimeout(() => setToastMessage(null), 8000);
 
-                            // Update global findings from real DB data
-                            if (scan.findings && scan.findings.length > 0) {
-                                setAllFindings(prev => [...prev, ...scan.findings]);
-                            }
+                            // Refresh global scans & incidents from DB
+                            refreshScans?.();
                             setMonitoredAssets(prev => {
                                 const newAsset = {
                                     target,
