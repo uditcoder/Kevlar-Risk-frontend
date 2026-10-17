@@ -16,7 +16,7 @@ export default function Sidebar() {
                         </div>
                         <div>
                             <div className="text-sm font-extrabold tracking-tight flex items-center gap-1.5 text-white">
-                                {window.__ENV__?.APP_NAME} <span className="text-[10px] text-purple-400 font-mono font-semibold">Ar</span>
+                                {window.__ENV__?.APP_NAME} <span className="text-[10px] text-purple-400 font-mono font-semibold"></span>
                             </div>
                             {/* <div className="text-[11px] text-slate-400 font-medium">Kevlar Risk</div> */}
                         </div>
@@ -91,11 +91,22 @@ export default function Sidebar() {
             <div className="mt-auto pt-6">
                 <div className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-xl border border-white/5 mb-3">
                     <div className="w-8 h-8 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold text-sm uppercase">
-                        {user?.email?.[0] || 'U'}
+                        {(user?.name || user?.email)?.[0] || 'U'}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <div className="text-xs font-medium text-white truncate">{user?.email}</div>
-                        <div className="text-[10px] text-slate-400 capitalize">{user?.role}</div>
+                        <div className="text-xs font-medium text-white truncate">{user?.name || user?.email}</div>
+                        <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-[10px] text-slate-400 capitalize">{user?.role}</span>
+                            {user?.role === 'superadmin' ? (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">
+                                    Unlimited
+                                </span>
+                            ) : (
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${(user?.scanTokens ?? 10) > 0 ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
+                                    ⚡ {user?.scanTokens ?? 10} Tokens
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/10 hover:border-red-500/20">

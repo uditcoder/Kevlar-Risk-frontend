@@ -64,6 +64,42 @@ export default function AdminDashboard() {
     }
   };
 
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownloadReport = async (userId, userEmail) => {
+    try {
+      setDownloadingId(userId);
+      const apiUrl = window.__ENV__?.API_BASE_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/admin/users/${userId}/export-report`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download report');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeEmail = (userEmail || 'user').replace(/[^a-zA-Z0-9_-]/g, '_');
+      a.download = `User_Activity_Report_${safeEmail}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      setToastMessage('User activity report downloaded successfully');
+    } catch (err) {
+      console.error('Report download error:', err);
+      setToastMessage(`Download failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -99,7 +135,9 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4 font-semibold">Email</th>
                   <th className="px-6 py-4 font-semibold">Role</th>
                   <th className="px-6 py-4 font-semibold">Company</th>
+                  <th className="px-6 py-4 font-semibold text-center">Current Tokens</th>
                   <th className="px-6 py-4 font-semibold text-center">Status</th>
+                  <th className="px-6 py-4 font-semibold text-right">Report</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
@@ -114,11 +152,47 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4">{u.companyName || '-'}</td>
                     <td className="px-6 py-4 text-center">
+                      {u.role === 'superadmin' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-sm">
+                          <span>♾️</span> Unlimited
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ${
+                          (typeof u.scanTokens === 'number' ? u.scanTokens : 10) > 0
+                            ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                            : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                        }`}>
+                          <span>⚡</span>
+                          <span>{typeof u.scanTokens === 'number' ? u.scanTokens : (u.scanTokens ?? 10)}</span>
+                          <span className="text-[10px] opacity-60">/ 10</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
                       {(u.isPending || u.setupToken) ? (
                         <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending</span>
                       ) : (
                         <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Active</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDownloadReport(u.id, u.email)}
+                        disabled={downloadingId === u.id}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:text-emerald-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm group"
+                        title="Download Activity & Monitoring Report (.xlsx)"
+                      >
+                        {downloadingId === u.id ? (
+                          <svg className="w-4 h-4 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))}

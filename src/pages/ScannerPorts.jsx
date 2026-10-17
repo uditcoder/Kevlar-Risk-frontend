@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import TokenBadge from '../components/TokenBadge';
 
 export default function ScannerPorts() {
-    const { token, refreshScans } = useAppContext();
+    const { token, refreshScans, setToastMessage, updateTokens } = useAppContext();
     const [target, setTarget] = useState('');
     const [topPorts, setTopPorts] = useState('100');
     const [loading, setLoading] = useState(false);
@@ -39,8 +40,16 @@ export default function ScannerPorts() {
                 body: JSON.stringify({ target: target.trim(), topPorts })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Scan failed');
-            
+            if (!res.ok) {
+                const msg = data.error || 'Scan failed';
+                setToastMessage(msg);
+                throw new Error(msg);
+            }
+
+            if (typeof data.remainingTokens === 'number') {
+                updateTokens(data.remainingTokens);
+            }
+
             if (data.queued && data.taskId) {
                 const pollInterval = setInterval(async () => {
                     try {
@@ -49,7 +58,7 @@ export default function ScannerPorts() {
                         });
                         if (!statusRes.ok) return;
                         const statusData = await statusRes.json();
-                        
+
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
@@ -67,7 +76,7 @@ export default function ScannerPorts() {
                                 refreshScans?.();
                             }
                         }
-                    } catch (err) {}
+                    } catch (err) { }
                 }, 5000);
             } else {
                 setResults(data);
@@ -97,52 +106,58 @@ export default function ScannerPorts() {
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="space-y-3">
-                <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    1. Selected Monitor Type
-                </div>
-                <div className="p-3.5 rounded-2xl border border-orange-500/60 bg-orange-500/10 text-orange-300 ring-1 ring-orange-500/30 flex items-center gap-3.5 w-fit">
-                    <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <form onSubmit={handleScan} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 space-y-2.5">
+                        <label className="text-xs font-semibold text-slate-300 tracking-wide flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                Target Host / IP Address
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-mono font-normal">e.g. scanme.nmap.org</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                value={target}
+                                onChange={e => setTarget(e.target.value)}
+                                placeholder="scanme.nmap.org or 192.168.1.1"
+                                className="w-full bg-[#111424]/90 border border-white/10 text-white rounded-xl pl-10 pr-4 py-3 text-xs font-mono focus:outline-none focus:border-orange-500/80 focus:ring-1 focus:ring-orange-500/50 transition-all placeholder:text-slate-600 shadow-inner"
+                            />
+                        </div>
                     </div>
-                    <div className="text-left">
-                        <span className="text-xs font-bold block text-white">Port Scanner</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Powered by naabu</span>
-                    </div>
-                </div>
-            </div>
-
-            <form onSubmit={handleScan} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-orange-400 mb-1.5">Target Host / IP Address</label>
-                        <input
-                            type="text"
-                            value={target}
-                            onChange={e => setTarget(e.target.value)}
-                            placeholder="e.g. scanme.nmap.org or 192.168.1.1"
-                            className="w-full bg-[#111424] border border-white/10 text-white rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Top Ports to Scan</label>
+                    <div className="space-y-2.5">
+                        <label className="text-xs font-semibold text-slate-300 tracking-wide flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                            Top Ports to Scan
+                        </label>
                         <select
                             value={topPorts}
                             onChange={e => setTopPorts(e.target.value)}
-                            className="w-full bg-[#111424] border border-white/10 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 transition-all cursor-pointer"
+                            className="w-full bg-[#111424]/90 border border-white/10 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500/80 focus:ring-1 focus:ring-orange-500/50 transition-all cursor-pointer shadow-inner"
                         >
-                            <option value="100">Top 100</option>
-                            <option value="1000">Top 1000</option>
-                            <option value="full">All 65535</option>
+                            <option value="100">Top 100 Ports</option>
+                            <option value="1000">Top 1000 Ports</option>
+                            <option value="full">All 65535 Ports</option>
                         </select>
                     </div>
                 </div>
 
-                <div className="flex justify-end pt-3 border-t border-white/5">
-                    <button type="submit" disabled={loading}
-                        className={`bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-3 px-7 rounded-xl transition-all shadow-lg shadow-orange-600/30 flex items-center gap-2 text-xs ${loading ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>{loading ? 'Scanning Ports...' : 'Run Port Scan'}</span>
-                        {loading && <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 pt-2">
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className={`bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 text-xs cursor-pointer ${
+                            loading ? 'opacity-75 cursor-not-allowed' : ''
+                        }`}
+                    >
+                        <span>{loading ? 'Scanning in Background...' : 'START MONITORING'}</span>
+                        {loading && <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
                     </button>
                 </div>
             </form>
@@ -152,21 +167,20 @@ export default function ScannerPorts() {
             )}
 
             {hasScanned && !loading && !error && results && (
-                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
-                    results.ports?.length === 0
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${results.ports?.length === 0
                         ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
                         : scanMeta.isRescan
-                            ? (scanMeta.newFindingsCount > 0 
-                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                            ? (scanMeta.newFindingsCount > 0
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300'
                                 : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
                             : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
-                }`}>
+                    }`}>
                     <div className="flex items-center gap-2">
                         <span>
                             {results.ports?.length === 0
                                 ? 'ℹ️'
-                                : scanMeta.isRescan 
-                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅')
                                     : '✅'}
                         </span>
                         <span>

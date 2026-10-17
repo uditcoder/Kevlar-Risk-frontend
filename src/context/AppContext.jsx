@@ -158,6 +158,24 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.error("Failed to fetch scheduled scans", err);
     }
+
+    // Refresh user profile & live scan token balance
+    try {
+      const apiUrl = window.__ENV__?.API_BASE_URL;
+      const resUser = await fetch(`${apiUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resUser.ok) {
+        const uData = await resUser.json();
+        if (uData.user) {
+          setUser(prev => {
+            const updated = { ...(prev || {}), ...uData.user };
+            sessionStorage.setItem('cg_user', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      }
+    } catch (err) {}
   }, [token]);
 
   useEffect(() => {
@@ -194,26 +212,39 @@ export function AppProvider({ children }) {
     sessionStorage.removeItem('cg_token');
     localStorage.removeItem('cg_user');
     localStorage.removeItem('cg_token');
+    setToastMessage('Logout Successfully');
   };
 
-  const value = {
-    isScanning, setIsScanning,
-    scanStatus, setScanStatus,
-    scanResult, setScanResult,
-    monitoredAssets, setMonitoredAssets,
-    scheduledScans, setScheduledScans,
-    allScans, setAllScans,
-    allFindings, setAllFindings,
-    selectedAssetHost, setSelectedAssetHost,
-    groupedFindings,
-    modalFindings,
-    modalHighestSeverity,
-    toastMessage, setToastMessage,
-    user, token, login, logout,
-    refreshScans: fetchScans
-  };
+    const updateTokens = useCallback((newTokens) => {
+      if (typeof newTokens === 'number') {
+        setUser(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev, scanTokens: newTokens };
+          sessionStorage.setItem('cg_user', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, []);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+    const value = {
+      isScanning, setIsScanning,
+      scanStatus, setScanStatus,
+      scanResult, setScanResult,
+      monitoredAssets, setMonitoredAssets,
+      scheduledScans, setScheduledScans,
+      allScans, setAllScans,
+      allFindings, setAllFindings,
+      selectedAssetHost, setSelectedAssetHost,
+      groupedFindings,
+      modalFindings,
+      modalHighestSeverity,
+      toastMessage, setToastMessage,
+      user, token, login, logout,
+      updateTokens,
+      refreshScans: fetchScans
+    };
+
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useAppContext() {

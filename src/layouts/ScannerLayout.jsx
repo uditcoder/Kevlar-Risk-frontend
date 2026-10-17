@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import TokenBadge from '../components/TokenBadge';
 
 export default function ScannerLayout() {
     const { scanStatus, setScanStatus } = useAppContext();
@@ -38,25 +39,24 @@ export default function ScannerLayout() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="glass-card p-6 sm:p-7 space-y-6">
+            <div className="glass-card p-6 sm:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
                     <div>
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                            <h2 className="text-base font-bold text-white tracking-tight">
+                        <div className="flex items-center gap-2.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-sm shadow-indigo-500/50"></span>
+                            <h2 className="text-lg font-bold text-white tracking-tight">
                                 {titleText}
                             </h2>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{subtitleText}</p>
+                        <p className="text-xs text-slate-400 mt-1">{subtitleText}</p>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-[#12162a] p-1 rounded-xl border border-white/5 self-start sm:self-auto">
-                        <button type="button" className="px-3 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white shadow transition-all flex items-center gap-1.5 cursor-pointer">
-                            <span>⚡ Live Engine</span>
-                        </button>
-                        {/* <button type="button" className="px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer">
-                            <span>💡 Instant Simulation</span>
-                        </button> */}
+                    <div className="flex items-center gap-3 self-start sm:self-auto">
+                        <TokenBadge />
+                        <div className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/30 flex items-center gap-2 shadow-sm">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Live Engine</span>
+                        </div>
                     </div>
                 </div>
 
