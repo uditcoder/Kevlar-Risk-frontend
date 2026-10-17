@@ -161,7 +161,7 @@ export function AppProvider({ children }) {
 
     // Refresh user profile & live scan token balance
     try {
-      const apiUrl = window.__ENV__?.API_BASE_URL;
+      const apiUrl = window.__ENV__?.API_BASE_URL || '';
       const resUser = await fetch(`${apiUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -169,6 +169,9 @@ export function AppProvider({ children }) {
         const uData = await resUser.json();
         if (uData.user) {
           setUser(prev => {
+            if (prev && prev.scanTokens === uData.user.scanTokens && prev.name === uData.user.name && prev.role === uData.user.role) {
+              return prev;
+            }
             const updated = { ...(prev || {}), ...uData.user };
             sessionStorage.setItem('cg_user', JSON.stringify(updated));
             return updated;
@@ -181,9 +184,21 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!token) return;
     fetchScans();
-    // Auto-poll every 6 seconds so newly completed scans appear immediately without manual page refresh
-    const interval = setInterval(fetchScans, 6000);
-    return () => clearInterval(interval);
+
+    // Auto-poll every 3 seconds so token changes and scans appear immediately
+    const interval = setInterval(fetchScans, 3000);
+
+    // Also immediately refresh whenever user refocuses tab
+    const handleFocus = () => fetchScans();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') fetchScans();
+    });
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [token, fetchScans]);
 
   const login = (userData, tokenString) => {

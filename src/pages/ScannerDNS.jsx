@@ -26,9 +26,7 @@ export default function ScannerDNS() {
         }
 
         const titleEl = document.getElementById('scanPopupTitle');
-        if (titleEl) titleEl.innerText = 'Resolving CNAME & DNS';
-        const subEl = document.getElementById('scanPopupSubtitle');
-        if (subEl) subEl.innerText = 'Querying name servers & detecting takeover risks...';
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         try {

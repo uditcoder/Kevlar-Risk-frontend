@@ -18,9 +18,7 @@ export default function ScannerVPN() {
         }
 
         const titleEl = document.getElementById('scanPopupTitle');
-        if (titleEl) titleEl.innerText = 'Auditing VPN Gateway';
-        const subEl = document.getElementById('scanPopupSubtitle');
-        if (subEl) subEl.innerText = 'Analyzing perimeter gateway security...';
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         setTimeout(async () => {

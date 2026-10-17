@@ -20,7 +20,8 @@ export default function ScannerWeb() {
             setIsScanning(false);
             return;
         }
-
+        const titleEl = document.getElementById('scanPopupTitle');
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         setTimeout(async () => {

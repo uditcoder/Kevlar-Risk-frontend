@@ -91,6 +91,7 @@ export default function Modals() {
 
         if (!selectedAssetHost) {
             setClaudeIntel(null);
+            setLoadingIntel(false);
             return;
         }
 
@@ -102,10 +103,13 @@ export default function Modals() {
             setClaudeIntel(preloaded);
             setLoadingIntel(false);
         } else if (token) {
-            // Automatically fetch simultaneously in background
+            // Automatically fetch simultaneously in background with loader state active
+            setClaudeIntel(null);
+            setLoadingIntel(true);
             fetchClaudeIntelAuto(cleanTargetHost);
         } else {
             setClaudeIntel(null);
+            setLoadingIntel(false);
         }
     }, [selectedAssetHost]);
 
@@ -263,13 +267,10 @@ export default function Modals() {
                         </div>
                     </div>
 
-                    {/* Title & Subtitle */}
+                    {/* Title */}
                     <h3 id="scanPopupTitle" className="text-lg font-bold text-white tracking-wide">
-                        Scanning Deep Web
+                        Scanning Vulnerabilities
                     </h3>
-                    <p id="scanPopupSubtitle" className="text-xs text-slate-400 mt-1">
-                        Analyzing millions of records...
-                    </p>
 
                     {/* Continuous Cyber Loader Bar */}
                     <div className="w-full h-1.5 rounded-full bg-[#141829] border border-white/5 overflow-hidden relative my-4">
@@ -359,12 +360,30 @@ export default function Modals() {
                         </div>
 
                         {/* MERGED CONTENT: CLAUDE AI INTELLIGENCE + NUCLEI FINDINGS */}
-                        <div ref={modalContentRef} className="flex-1 p-5 overflow-y-auto space-y-5 text-slate-200 text-xs custom-scrollbar">
-                            {/* 1. CLAUDE AI SECURITY THREAT ASSESSMENT (TOP CARD) */}
-                            {loadingIntel ? (
-                                <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 flex items-center gap-3 animate-pulse">
-                                    <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                                    <span className="text-xs text-purple-300 font-medium">Analyzing attack paths, exploitability, and security posture...</span>
+                        <div ref={modalContentRef} className="flex-1 p-5 overflow-y-auto space-y-5 text-slate-200 text-xs custom-scrollbar">                            {/* 1. CLAUDE AI SECURITY THREAT ASSESSMENT (TOP CARD) */}
+                            {loadingIntel || (!claudeIntel && token) ? (
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-900/25 via-[#13172c] to-[#0d0f1b] border border-purple-500/30 shadow-md space-y-3">
+                                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300 font-mono">
+                                                Threat Assessment
+                                            </span>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border bg-purple-500/20 text-purple-300 border-purple-500/30 animate-pulse">
+                                            ANALYZING...
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 py-2">
+                                        <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                                        <span className="text-xs text-purple-200 font-medium animate-pulse">
+                                            Generating AI threat assessment & exploitability analysis...
+                                        </span>
+                                    </div>
+                                    <div className="space-y-1.5 opacity-40">
+                                        <div className="h-2.5 bg-purple-400/20 rounded w-full animate-pulse"></div>
+                                        <div className="h-2.5 bg-purple-400/15 rounded w-4/5 animate-pulse"></div>
+                                    </div>
                                 </div>
                             ) : claudeIntel ? (
                                 <div className="p-4 rounded-xl bg-gradient-to-br from-purple-900/25 via-[#13172c] to-[#0d0f1b] border border-purple-500/30 shadow-md space-y-3">
@@ -377,10 +396,6 @@ export default function Modals() {
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            {/* <div className="text-right">
-                                                <span className="text-[9px] text-slate-400 uppercase font-mono">Risk Score: </span>
-                                                <strong className="text-sm font-bold text-white font-mono">{claudeIntel.riskScore || 50}/100</strong>
-                                            </div> */}
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${
                                                 claudeIntel.riskRating === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border-red-500/40' :
                                                 claudeIntel.riskRating === 'HIGH' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
@@ -405,7 +420,7 @@ export default function Modals() {
 
                                     {/* Executive Summary */}
                                     <p className="text-slate-200 text-xs leading-relaxed">
-                                        {claudeIntel.executiveSummary}
+                                        {claudeIntel.executiveSummary || `Target ${selectedAssetHost?.split('__')[0] || ''} security assessment completed. Identified ${modalFindings.length} configuration finding(s). Review findings and remediation plans below.`}
                                     </p>
 
                                     {/* Expandable Attack Chain & Threat Actor Simulation */}
@@ -466,12 +481,22 @@ export default function Modals() {
                                 </div>
                             ) : null}
 
-                            {/* 2. NUCLEI DISCOVERED FINDINGS & CVES */}
+                            {/* 2. DISCOVERED FINDINGS & CVES OR THREAT ASSESSMENT */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-white pb-2 border-b border-white/10 flex items-center justify-between">
                                     <span className="flex items-center gap-2">
                                         <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                        Discovered Vulnerabilities & Findings
+                                        {(() => {
+                                            // Check if all findings are headers / non-cve exposure findings (0 nuclei CVE vulnerability findings)
+                                            const hasNucleiFindings = modalFindings.some(f => {
+                                                const tags = Array.isArray(f.tags) ? f.tags : [];
+                                                const tId = (f.templateId || '').toLowerCase();
+                                                const isHeader = tags.includes('headers') || tId.includes('http-missing-security-headers') || tId.includes('tech-disclosure') || tId.includes('server-banner');
+                                                const isInfoOnly = f.severity === 'info';
+                                                return !isHeader && !isInfoOnly;
+                                            });
+                                            return hasNucleiFindings ? 'Discovered Vulnerabilities & Findings' : 'Threat Assessment';
+                                        })()}
                                     </span>
                                     <span className="bg-purple-500/20 text-purple-300 text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full border border-purple-500/30">
                                         {modalFindings.length} Total

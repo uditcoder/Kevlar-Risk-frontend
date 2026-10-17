@@ -27,9 +27,7 @@ export default function ScannerStatus() {
         }
 
         const titleEl = document.getElementById('scanPopupTitle');
-        if (titleEl) titleEl.innerText = 'Checking Status & Title';
-        const subEl = document.getElementById('scanPopupSubtitle');
-        if (subEl) subEl.innerText = 'Probing endpoints & extracting page titles...';
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         try {

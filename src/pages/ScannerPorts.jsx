@@ -27,9 +27,7 @@ export default function ScannerPorts() {
         }
 
         const titleEl = document.getElementById('scanPopupTitle');
-        if (titleEl) titleEl.innerText = 'Scanning Network Ports';
-        const subEl = document.getElementById('scanPopupSubtitle');
-        if (subEl) subEl.innerText = 'Probing network endpoints & detecting open ports...';
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         try {
