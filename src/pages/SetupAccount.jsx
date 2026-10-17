@@ -9,6 +9,7 @@ export default function SetupAccount() {
   const email = searchParams.get('email');
   const name = searchParams.get('name');
 
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,9 +33,14 @@ export default function SetupAccount() {
         const apiUrl = window.__ENV__?.API_BASE_URL;
         const res = await fetch(`${apiUrl}/api/auth/verify-setup-token?token=${encodeURIComponent(token)}`);
         const data = await res.json();
+        if (data.alreadyCreated) {
+          setToastMessage('Your account is already set up. Please log in directly.');
+          navigate('/login', { replace: true });
+          return;
+        }
         if (!res.ok || !data.valid) {
           setTokenExpired(true);
-          setError(data.error || 'This account setup link has already been used or has expired. Please log in directly.');
+          setError(data.error || 'This account setup link has already been used. Please log in directly.');
         }
       } catch (err) {
         // Fallback: allow form submission if network fails
@@ -44,7 +50,7 @@ export default function SetupAccount() {
     };
 
     checkToken();
-  }, [token]);
+  }, [token, navigate, setToastMessage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

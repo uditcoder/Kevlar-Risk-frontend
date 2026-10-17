@@ -484,255 +484,109 @@ export default function AuditLogs() {
                 </div>
             </div>
 
-            {/* Navigation Tabs (All Audit Events FIRST, followed by User Details, Monitoring, Grant Access, Incidents & Settings) */}
-            <div className="bg-[#0b0d14] border border-white/5 rounded-2xl p-2 flex flex-wrap items-center gap-2 shadow-sm">
-                <button
-                    onClick={() => setActiveTab('all-logs')}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        activeTab === 'all-logs'
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                    <span>All Audit Events</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                        activeTab === 'all-logs' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
-                    }`}>
-                        {counts.total}
-                    </span>
-                </button>
+            {/* Navigation Tabs */}
+            <div className="bg-[#0b0d14] border border-white/5 rounded-2xl p-2.5 flex flex-wrap items-center gap-2 shadow-sm">
+                    <button
+                        onClick={() => setActiveTab('all-logs')}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTab === 'all-logs'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                        <span>All Audit Events</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            activeTab === 'all-logs' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
+                        }`}>
+                            {counts.total}
+                        </span>
+                    </button>
 
-                <button
-                    onClick={() => setActiveTab('users')}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        activeTab === 'users'
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>User Details</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                        activeTab === 'users' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
-                    }`}>
-                        {userDetails.length}
-                    </span>
-                </button>
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTab === 'users'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>User Details</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            activeTab === 'users' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
+                        }`}>
+                            {userDetails.length}
+                        </span>
+                    </button>
 
-                <button
-                    onClick={() => setActiveTab('monitoring')}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        activeTab === 'monitoring'
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <span>Monitoring (All Types)</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                        activeTab === 'monitoring' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
-                    }`}>
-                        {monitoringData.length}
-                    </span>
-                </button>
+                    <button
+                        onClick={() => setActiveTab('monitoring')}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTab === 'monitoring'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span>Monitoring (All Types)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            activeTab === 'monitoring' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
+                        }`}>
+                            {monitoringData.length}
+                        </span>
+                    </button>
 
-                <button
-                    onClick={() => setActiveTab('grant-access')}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        activeTab === 'grant-access'
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <span>Grant Access</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                        activeTab === 'grant-access' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
-                    }`}>
-                        {grantedAccess.total}
-                    </span>
-                </button>
+                    <button
+                        onClick={() => setActiveTab('grant-access')}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTab === 'grant-access'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span>Grant Access</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            activeTab === 'grant-access' ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'
+                        }`}>
+                            {grantedAccess.total}
+                        </span>
+                    </button>
 
-                <button
-                    onClick={() => setActiveTab('incidents')}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        activeTab === 'incidents'
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                            : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>Incidents & Settings</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                        activeTab === 'incidents' ? 'bg-black/20 text-black' : 'bg-rose-500/20 text-rose-300'
-                    }`}>
-                        {(incidentsData.totalIncidents || 0) + (incidentsData.totalSettingsChanges || 0)}
-                    </span>
-                </button>
+                    <button
+                        onClick={() => setActiveTab('incidents')}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTab === 'incidents'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Incidents & Settings</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            activeTab === 'incidents' ? 'bg-black/20 text-black' : 'bg-rose-500/20 text-rose-300'
+                        }`}>
+                            {(incidentsData.totalIncidents || 0) + (incidentsData.totalSettingsChanges || 0)}
+                        </span>
+                    </button>
             </div>
 
             {/* ══════════════════════════════════════════════════════════════════════
-                TAB 1: USER DETAILS (LAST LOGIN, LOGOUT, SIGNUP & SESSION STATUS)
+                TAB 1: USER DETAILS (RECENT AUTH EVENT LOGS)
                ══════════════════════════════════════════════════════════════════════ */}
             {activeTab === 'users' && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                    {/* User Details Table */}
-                    <div className="bg-[#0b0d14] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-                        <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                                    User Authentication Lifecycle
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Real-time tracking of user account creation (Signup), Last Login timestamp with IP address, and Session Logout.
-                                </p>
-                            </div>
-                            <span className="text-xs text-slate-400 font-mono">
-                                Total: <strong className="text-white">{userDetails.length}</strong> Users
-                            </span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr className="bg-white/[0.02] border-b border-white/5 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                                        <th className="py-4 px-6">User / Identity</th>
-                                        <th className="py-4 px-6">Role & Designation</th>
-                                        <th className="py-4 px-6">Signup Date</th>
-                                        <th className="py-4 px-6">Last Login</th>
-                                        <th className="py-4 px-6">Last Logout</th>
-                                        <th className="py-4 px-6">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="6" className="p-12 text-center text-slate-400 font-medium">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-                                                    Loading user authentication details...
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : userDetails.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" className="p-12 text-center text-slate-500 font-medium">
-                                                No user records found.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        userDetails.map((u, idx) => {
-                                            const signupDate = u.signupAt ? new Date(u.signupAt) : new Date();
-                                            const loginDate = u.lastLoginAt ? new Date(u.lastLoginAt) : null;
-                                            const logoutDate = u.lastLogoutAt ? new Date(u.lastLogoutAt) : null;
-
-                                            return (
-                                                <tr key={u.id || idx} className="hover:bg-white/[0.02] transition-colors text-slate-300">
-                                                    {/* User Identity */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center">
-                                                                {(u.name || u.email || 'U')[0].toUpperCase()}
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-semibold text-white text-xs">{u.name || 'User'}</div>
-                                                                <div className="text-[11px] text-slate-400 font-mono">{u.email}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Role */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase font-mono border bg-blue-500/10 text-blue-400 border-blue-500/20">
-                                                            {u.role || 'USER'}
-                                                        </span>
-                                                        <div className="text-[10px] text-slate-400 mt-1">
-                                                            {u.designation || 'Member'}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Signup Date */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        <div className="font-mono text-white text-[11px]">
-                                                            {signupDate.toLocaleDateString()}
-                                                        </div>
-                                                        <div className="text-[10px] text-slate-400 font-mono">
-                                                            {signupDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Last Login */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        {loginDate ? (
-                                                            <div>
-                                                                <div className="font-mono text-emerald-400 text-[11px] font-bold flex items-center gap-1.5">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                                                    {loginDate.toLocaleDateString()} {loginDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                                    IP: {u.lastLoginIp || '127.0.0.1'} • 2FA/OTP
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-slate-500 italic text-[11px]">No login recorded</span>
-                                                        )}
-                                                    </td>
-
-                                                    {/* Last Logout */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        {logoutDate ? (
-                                                            <div>
-                                                                <div className="font-mono text-slate-300 text-[11px]">
-                                                                    {logoutDate.toLocaleDateString()} {logoutDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-500">Session closed</div>
-                                                            </div>
-                                                        ) : loginDate ? (
-                                                            <span className="inline-flex items-center gap-1.5 text-emerald-400 text-[11px] font-medium">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                                                Active Session
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-slate-500 italic text-[11px]">-</span>
-                                                        )}
-                                                    </td>
-
-                                                    {/* Status */}
-                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase font-mono border ${
-                                                            u.status === 'ACTIVE'
-                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                                : u.status === 'PENDING_SETUP'
-                                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                                                        }`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${
-                                                                u.status === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : u.status === 'PENDING_SETUP' ? 'bg-amber-400' : 'bg-slate-400'
-                                                            }`}></span>
-                                                            {u.status || 'ACTIVE'}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
                     {/* Recent Authentication Events Stream */}
                     <div className="bg-[#0b0d14] border border-white/5 rounded-2xl p-5 space-y-4 shadow-sm">
                         <div className="flex items-center justify-between">
@@ -802,20 +656,6 @@ export default function AuditLogs() {
                                 </button>
                             ))}
                         </div>
-
-                        {/* Search Input */}
-                        <div className="relative md:w-64">
-                            <svg className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input
-                                type="text"
-                                value={monitorSearch}
-                                onChange={(e) => setMonitorSearch(e.target.value)}
-                                placeholder="Search target host or details..."
-                                className="w-full bg-[#121624] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                            />
-                        </div>
                     </div>
 
                     {/* Monitoring Data Table */}
@@ -831,13 +671,12 @@ export default function AuditLogs() {
                                         <th className="py-4 px-6">Last Monitored</th>
                                         <th className="py-4 px-6">Findings / Discoveries</th>
                                         <th className="py-4 px-6">Status</th>
-                                        <th className="py-4 px-6">Summary Details</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="8" className="p-12 text-center text-slate-400 font-medium">
+                                            <td colSpan="7" className="p-12 text-center text-slate-400 font-medium">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
                                                     Loading monitored targets across all types...
@@ -846,7 +685,7 @@ export default function AuditLogs() {
                                         </tr>
                                     ) : filteredMonitoringData.length === 0 ? (
                                         <tr>
-                                            <td colSpan="8" className="p-12 text-center text-slate-500 font-medium">
+                                            <td colSpan="7" className="p-12 text-center text-slate-500 font-medium">
                                                 No monitored targets match the selected type or filter.
                                             </td>
                                         </tr>
@@ -921,11 +760,6 @@ export default function AuditLogs() {
                                                             {item.status || 'COMPLETE'}
                                                         </span>
                                                     </td>
-
-                                                    {/* Details */}
-                                                    <td className="py-4 px-6 text-slate-300 max-w-sm truncate text-[11px]" title={item.details}>
-                                                        {item.details || '-'}
-                                                    </td>
                                                 </tr>
                                             );
                                         })
@@ -942,29 +776,7 @@ export default function AuditLogs() {
                ══════════════════════════════════════════════════════════════════════ */}
             {activeTab === 'grant-access' && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                    {/* Grant Access KPI Overview */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="p-4 bg-[#0b0d14] border border-white/5 rounded-2xl shadow-sm">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Users Granted Access</span>
-                            <div className="text-2xl font-bold text-white mt-1 font-mono">{grantedAccess.total}</div>
-                            <span className="text-[11px] text-slate-500">Access granted by you</span>
-                        </div>
-                        <div className="p-4 bg-[#0b0d14] border border-white/5 rounded-2xl shadow-sm">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active & Verified</span>
-                            <div className="text-2xl font-bold text-emerald-400 mt-1 font-mono">{grantedAccess.active}</div>
-                            <span className="text-[11px] text-slate-500">Completed account setup</span>
-                        </div>
-                        <div className="p-4 bg-[#0b0d14] border border-white/5 rounded-2xl shadow-sm">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending Setup</span>
-                            <div className="text-2xl font-bold text-amber-400 mt-1 font-mono">{grantedAccess.pending}</div>
-                            <span className="text-[11px] text-slate-500">Invited / setup link active</span>
-                        </div>
-                        <div className="p-4 bg-[#0b0d14] border border-white/5 rounded-2xl shadow-sm">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Expired Invites</span>
-                            <div className="text-2xl font-bold text-rose-400 mt-1 font-mono">{grantedAccess.expired}</div>
-                            <span className="text-[11px] text-slate-500">Needs reinvitation</span>
-                        </div>
-                    </div>
+
 
                     {/* Granted Access Users Table */}
                     <div className="bg-[#0b0d14] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
@@ -1422,62 +1234,7 @@ export default function AuditLogs() {
                ══════════════════════════════════════════════════════════════════════ */}
             {activeTab === 'all-logs' && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                    {/* Filter and Search Bar */}
-                    <div className="bg-[#0b0d14] border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-                        {/* Category Tabs */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                            {[
-                                { id: 'ALL', label: 'All Events', count: counts.total },
-                                { id: 'SECURITY', label: 'Security', count: counts.security },
-                                { id: 'MONITOR', label: 'Monitoring', count: counts.monitor },
-                                { id: 'AUTH', label: 'Auth & 2FA', count: counts.auth },
-                                { id: 'ADMIN', label: 'Admin', count: counts.admin }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setSelectedCategory(tab.id)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-                                        selectedCategory === tab.id
-                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                                            : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                                    }`}
-                                >
-                                    {tab.label}
-                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                                        selectedCategory === tab.id ? 'bg-emerald-500/30 text-emerald-300' : 'bg-white/5 text-slate-400'
-                                    }`}>
-                                        {tab.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
 
-                        {/* Search & Status Filter */}
-                        <div className="flex items-center gap-2.5">
-                            <div className="relative flex-1 md:w-64">
-                                <svg className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Filter by target, user, action..."
-                                    className="w-full bg-[#121624] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                                />
-                            </div>
-
-                            <select
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="bg-[#121624] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500/50"
-                            >
-                                <option value="ALL">All Statuses</option>
-                                <option value="SUCCESS">Success Only</option>
-                                <option value="FAILED">Failed Only</option>
-                            </select>
-                        </div>
-                    </div>
 
                     {/* Audit Logs Table */}
                     <div className="bg-[#0b0d14] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">

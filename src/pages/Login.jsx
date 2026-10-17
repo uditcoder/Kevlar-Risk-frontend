@@ -57,7 +57,7 @@ export default function Login() {
           setToastMessage('Successfully logged in');
           navigate('/scanner');
         } else {
-          setToastMessage(`Login failed: ${data.error}`);
+          setToastMessage(data.error || 'Login failed');
         }
       }
     } catch (err) {

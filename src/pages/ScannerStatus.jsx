@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import TokenBadge from '../components/TokenBadge';
 
 export default function ScannerStatus() {
-    const { token, refreshScans } = useAppContext();
+    const { token, refreshScans, setToastMessage, updateTokens } = useAppContext();
     const [targets, setTargets] = useState('');
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState([]);
@@ -39,8 +40,16 @@ export default function ScannerStatus() {
                 body: JSON.stringify({ targets: targetList })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Scan failed');
-            
+            if (!res.ok) {
+                const msg = data.error || 'Scan failed';
+                setToastMessage(msg);
+                throw new Error(msg);
+            }
+
+            if (typeof data.remainingTokens === 'number') {
+                updateTokens(data.remainingTokens);
+            }
+
             if (data.queued && data.taskId) {
                 const pollInterval = setInterval(async () => {
                     try {
@@ -49,7 +58,7 @@ export default function ScannerStatus() {
                         });
                         if (!statusRes.ok) return;
                         const statusData = await statusRes.json();
-                        
+
                         if (statusData.task?.status === 'complete' || statusData.task?.status === 'failed') {
                             clearInterval(pollInterval);
                             setLoading(false);
@@ -67,7 +76,7 @@ export default function ScannerStatus() {
                                 refreshScans?.();
                             }
                         }
-                    } catch (err) {}
+                    } catch (err) { }
                 }, 5000);
             } else {
                 setResults(data.results || []);
@@ -97,40 +106,34 @@ export default function ScannerStatus() {
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-            <div className="space-y-3">
-                <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    1. Selected Monitor Type
-                </div>
-                <div className="p-3.5 rounded-2xl border border-cyan-500/60 bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-500/30 flex items-center gap-3.5 w-fit">
-                    <div className="w-9 h-9 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    </div>
-                    <div className="text-left">
-                        <span className="text-xs font-bold block text-white">Status Code & Title Monitor</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Powered by httpx</span>
-                    </div>
-                </div>
-            </div>
-
-            <form onSubmit={handleScan} className="space-y-4">
-                <div>
-                    <label className="block text-xs font-bold text-cyan-400 mb-1.5">
-                        Target URLs <span className="text-slate-500 font-normal">(one per line)</span>
+            <form onSubmit={handleScan} className="space-y-6">
+                <div className="space-y-2.5">
+                    <label className="text-xs font-semibold text-slate-300 tracking-wide flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                            Target URLs
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-mono font-normal">one per line</span>
                     </label>
                     <textarea
-                        rows={5}
+                        rows={4}
                         value={targets}
                         onChange={e => setTargets(e.target.value)}
-                        placeholder={"https://example.com\nhttps://api.myapp.com\nhttps://admin.myapp.com"}
-                        className="w-full bg-[#111424] border border-white/10 text-white rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all resize-none placeholder:text-slate-600"
+                        placeholder={"https://example.com\nhttps://api.myapp.com"}
+                        className="w-full bg-[#111424]/90 border border-white/10 text-white rounded-xl p-3.5 text-xs font-mono focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/50 transition-all resize-none placeholder:text-slate-600 shadow-inner"
                     />
                 </div>
 
-                <div className="flex justify-end pt-3 border-t border-white/5">
-                    <button type="submit" disabled={loading}
-                        className={`bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-7 rounded-xl transition-all shadow-lg shadow-cyan-600/30 flex items-center gap-2 text-xs ${loading ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>{loading ? 'Scanning...' : 'Run Status Monitor'}</span>
-                        {loading && <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 pt-2">
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className={`bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 text-xs cursor-pointer ${
+                            loading ? 'opacity-75 cursor-not-allowed' : ''
+                        }`}
+                    >
+                        <span>{loading ? 'Scanning in Background...' : 'START MONITORING'}</span>
+                        {loading && <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
                     </button>
                 </div>
             </form>
@@ -140,21 +143,20 @@ export default function ScannerStatus() {
             )}
 
             {hasScanned && !loading && !error && (
-                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
-                    results.length === 0
+                <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${results.length === 0
                         ? 'bg-slate-900/60 border-slate-700/50 text-slate-300'
                         : scanMeta.isRescan
-                            ? (scanMeta.newFindingsCount > 0 
-                                ? 'bg-red-500/10 border-red-500/40 text-red-300' 
+                            ? (scanMeta.newFindingsCount > 0
+                                ? 'bg-red-500/10 border-red-500/40 text-red-300'
                                 : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300')
                             : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
-                }`}>
+                    }`}>
                     <div className="flex items-center gap-2">
                         <span>
-                            {results.length === 0 
-                                ? 'ℹ️' 
-                                : scanMeta.isRescan 
-                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅') 
+                            {results.length === 0
+                                ? 'ℹ️'
+                                : scanMeta.isRescan
+                                    ? (scanMeta.newFindingsCount > 0 ? '⚠️' : '✅')
                                     : '✅'}
                         </span>
                         <span>
