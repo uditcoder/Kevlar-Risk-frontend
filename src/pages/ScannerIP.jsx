@@ -36,9 +36,7 @@ export default function ScannerIP() {
         }
 
         const titleEl = document.getElementById('scanPopupTitle');
-        if (titleEl) titleEl.innerText = 'Scanning Target IP';
-        const subEl = document.getElementById('scanPopupSubtitle');
-        if (subEl) subEl.innerText = 'Analyzing network perimeter & vulnerabilities...';
+        if (titleEl) titleEl.innerText = 'Scanning Vulnerabilities';
         document.getElementById('scanPopupModal')?.classList.remove('hidden');
 
         setTimeout(async () => {

@@ -14,6 +14,9 @@ export default function AdminDashboard() {
   }
 
   const [users, setUsers] = useState([]);
+  const [updatingTokenId, setUpdatingTokenId] = useState(null);
+  // Store unsaved edited tokens: { [userId]: number }
+  const [editedTokens, setEditedTokens] = useState({});
 
   const fetchUsers = async () => {
     try {
@@ -22,7 +25,10 @@ export default function AdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (res.ok) setUsers(data.users || []);
+      if (res.ok) {
+        setUsers(data.users || []);
+        setEditedTokens({});
+      }
     } catch (err) {
       console.error('Failed to fetch users');
     }
@@ -31,6 +37,50 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     fetchUsers();
   }, [token]);
+
+  const handleAdjustTokens = (targetUser, delta) => {
+    if (targetUser.role === 'superadmin') return;
+    const currentTokens = editedTokens[targetUser.id] !== undefined
+      ? editedTokens[targetUser.id]
+      : (typeof targetUser.scanTokens === 'number' ? targetUser.scanTokens : 10);
+    const newCount = Math.max(0, currentTokens + delta);
+    setEditedTokens(prev => ({ ...prev, [targetUser.id]: newCount }));
+  };
+
+  const handleSaveTokens = async (targetUser) => {
+    if (targetUser.role === 'superadmin') return;
+    const newCount = editedTokens[targetUser.id];
+    if (newCount === undefined) return;
+
+    setUpdatingTokenId(targetUser.id);
+    try {
+      const apiUrl = window.__ENV__?.API_BASE_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/admin/users/${targetUser.id}/tokens`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ scanTokens: newCount })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setToastMessage(`Failed to update tokens: ${data.error || 'Server error'}`);
+      } else {
+        setUsers(prev => prev.map(u => u.id === targetUser.id ? { ...u, scanTokens: newCount } : u));
+        setEditedTokens(prev => {
+          const next = { ...prev };
+          delete next[targetUser.id];
+          return next;
+        });
+        setToastMessage(`Tokens for ${targetUser.name || targetUser.email} updated to ${newCount}`);
+      }
+    } catch (err) {
+      setToastMessage('Error updating tokens');
+    } finally {
+      setUpdatingTokenId(null);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -156,17 +206,68 @@ export default function AdminDashboard() {
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-sm">
                           <span>♾️</span> Unlimited
                         </span>
-                      ) : (
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ${
-                          (typeof u.scanTokens === 'number' ? u.scanTokens : 10) > 0
-                            ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-                            : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                        }`}>
-                          <span>⚡</span>
-                          <span>{typeof u.scanTokens === 'number' ? u.scanTokens : (u.scanTokens ?? 10)}</span>
-                          <span className="text-[10px] opacity-60">/ 10</span>
-                        </span>
-                      )}
+                      ) : (() => {
+                        const originalTokens = typeof u.scanTokens === 'number' ? u.scanTokens : 10;
+                        const displayTokens = editedTokens[u.id] !== undefined ? editedTokens[u.id] : originalTokens;
+                        const hasChanges = editedTokens[u.id] !== undefined && editedTokens[u.id] !== originalTokens;
+                        const isSaving = updatingTokenId === u.id;
+
+                        return (
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustTokens(u, -1)}
+                              disabled={isSaving || displayTokens <= 0}
+                              className="w-6 h-6 rounded-md bg-white/5 border border-white/10 hover:bg-rose-500/20 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 font-bold text-xs flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Reduce 1 token"
+                            >
+                              -
+                            </button>
+
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border shadow-sm ${
+                              displayTokens > 0
+                                ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                                : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                            }`}>
+                              <span>⚡</span>
+                              <span className="font-mono font-bold">{displayTokens}</span>
+                              <span className="text-[10px] opacity-60">Tokens</span>
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustTokens(u, 1)}
+                              disabled={isSaving}
+                              className="w-6 h-6 rounded-md bg-white/5 border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-300 font-bold text-xs flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Increase 1 token"
+                            >
+                              +
+                            </button>
+
+                            {/* Save icon button appears only when tokens have been modified */}
+                            {hasChanges && (
+                              <button
+                                type="button"
+                                onClick={() => handleSaveTokens(u)}
+                                disabled={isSaving}
+                                className="w-6 h-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-black flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-emerald-500/20 animate-in fade-in"
+                                title="Save updated tokens"
+                              >
+                                {isSaving ? (
+                                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-center">
                       {(u.isPending || u.setupToken) ? (
